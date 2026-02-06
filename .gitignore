@@ -14,3 +14,14 @@
 !Assets/Scenes.meta
 !Assets/Scripts/**.meta
 !Assets/Scenes/**.meta
+
+# allow only specific StreamingAssets CSVs
+!Assets/StreamingAssets/
+!Assets/StreamingAssets/Audio/
+!Assets/StreamingAssets/Audio/**/
+!Assets/StreamingAssets/Audio/**/expInfo_*.csv
+!Assets/StreamingAssets/Audio/**/expInfo_*.csv.meta
+!Assets/StreamingAssets/**.csv
+!Assets/StreamingAssets/**.csv.meta
+!Assets/StreamingAssets/ExpMaterial/**.csv
+!Assets/StreamingAssets/ExpMaterial/**.csv.meta

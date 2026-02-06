@@ -23890,7 +23890,8 @@ MonoBehaviour:
   builder: {fileID: 1923915313}
   questionsRoot: {fileID: 1923915312}
   submitToggle: {fileID: 1182404645}
-  postSubmitToggle: {fileID: 0}
+  postSubmitToggle: {fileID: 2129821373}
+  postQuestionsRoot: {fileID: 2064460014}
   questionLists: {fileID: 1923915311}
   restHint: {fileID: 914771170}
   postQues: {fileID: 2064460013}
@@ -23899,6 +23900,7 @@ MonoBehaviour:
   hideOnSubmit: 1
   outputFolderRelative: Audio
   filePrefix: scaleAns_
+  postFilePrefix: resPostQues_
 --- !u!1 &1928334296
 GameObject:
   m_ObjectHideFlags: 0
@@ -27640,6 +27642,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 2618178220456456403, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
   m_PrefabInstance: {fileID: 2129821371}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2129821373 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8434824762051719496, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
+  m_PrefabInstance: {fileID: 2129821371}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9085046f02f69544eb97fd06b6048fe2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!4 &2133071434 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -860633542813117372, guid: 5057abb8caa7141a38acca9ab9ddccee, type: 3}
