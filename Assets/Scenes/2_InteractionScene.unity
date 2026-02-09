@@ -765,8 +765,8 @@ MonoBehaviour:
   lineA1: 
   lineA2: 
   lineB2: 
-  startDelay: 5
-  gapBetweenTurns: 0.25
+  startDelay: 2
+  gapBetweenTurns: 0
   autoStart: 1
   waitForB2Ready: 1
   b2Ready: 1
@@ -11705,7 +11705,7 @@ MonoBehaviour:
   hmdKeywords: Quest,Oculus,Meta,Headset,HMD
   sampleRate: 16000
   lengthSec: 10
-  loop: 1
+  loop: 0
   monitorPlayback: 1
   maxSpeakSeconds: 120
   OnMicStarted:
