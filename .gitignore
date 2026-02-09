@@ -25,6 +25,8 @@
 !Assets/StreamingAssets/**.csv.meta
 !Assets/StreamingAssets/ExpMaterial/**.csv
 !Assets/StreamingAssets/ExpMaterial/**.csv.meta
+!Assets/StreamingAssets/ExpMaterial/**.wav
+!Assets/StreamingAssets/ExpMaterial/**.wav.meta
 
 
 ._*
