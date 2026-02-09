@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Diagnostics;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -146,6 +147,8 @@ public class GameFlowManager : MonoBehaviour
         if (activeScene == voiceSampleSceneName && !voiceSampleReadyToProceed)
         {
             Debug.LogWarning("GameFlowManager: Voice sample not finished yet; blocked transition to interaction scene.");
+            var stack = new StackTrace(1, true);
+            Debug.LogError($"GameFlowManager: Blocked GoToInteractionScene call stack:\n{stack}");
             return;
         }
 
@@ -239,6 +242,11 @@ public class GameFlowManager : MonoBehaviour
     {
         voiceSampleReadyToProceed = ready;
         Log("voice_sample_ready_to_proceed", $"ready={ready}");
+    }
+
+    public bool IsVoiceSampleReadyToProceed()
+    {
+        return voiceSampleReadyToProceed;
     }
 
     private void ApplyParticipantAvatar()

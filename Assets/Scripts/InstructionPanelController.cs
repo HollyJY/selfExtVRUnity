@@ -44,6 +44,15 @@ public class InstructionPanelController : MonoBehaviour
 
     private void TryGoNextScene()
     {
+        string activeScene = SceneManager.GetActiveScene().name;
+        if (GameFlowManager.Instance != null &&
+            activeScene == GameFlowManager.Instance.voiceSampleSceneName &&
+            !GameFlowManager.Instance.IsVoiceSampleReadyToProceed())
+        {
+            Debug.LogWarning("InstructionPanelController: Blocked scene advance until voice sample is finished.");
+            return;
+        }
+
         if (GameFlowManager.Instance != null)
         {
             if (goToVoiceSample)
