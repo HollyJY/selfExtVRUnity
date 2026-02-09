@@ -51,6 +51,7 @@ public class GameFlowManager : MonoBehaviour
     private string logFilePath;
     private float t0;
     private bool logReady;
+    private bool voiceSampleReadyToProceed;
 
     private void Awake()
     {
@@ -130,6 +131,7 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
 
+        voiceSampleReadyToProceed = false;
         Log("go_to_voice_sample_scene");
         SceneManager.LoadSceneAsync(voiceSampleSceneName, LoadSceneMode.Single);
     }
@@ -140,6 +142,13 @@ public class GameFlowManager : MonoBehaviour
     /// </summary>
     public void GoToInteractionScene()
     {
+        string activeScene = SceneManager.GetActiveScene().name;
+        if (activeScene == voiceSampleSceneName && !voiceSampleReadyToProceed)
+        {
+            Debug.LogWarning("GameFlowManager: Voice sample not finished yet; blocked transition to interaction scene.");
+            return;
+        }
+
         Log("go_to_interaction_scene");
         SceneManager.LoadSceneAsync(interactionSceneName, LoadSceneMode.Single);
     }
@@ -219,7 +228,17 @@ public class GameFlowManager : MonoBehaviour
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         Log("scene_loaded", scene.name);
+        if (scene.name == voiceSampleSceneName)
+        {
+            voiceSampleReadyToProceed = false;
+        }
         ApplyParticipantAvatar();
+    }
+
+    public void SetVoiceSampleReadyToProceed(bool ready)
+    {
+        voiceSampleReadyToProceed = ready;
+        Log("voice_sample_ready_to_proceed", $"ready={ready}");
     }
 
     private void ApplyParticipantAvatar()

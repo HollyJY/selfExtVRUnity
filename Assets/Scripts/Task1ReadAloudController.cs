@@ -96,6 +96,11 @@ public class Task1ReadAloudController : MonoBehaviour
         {
             timerText.text = "";
         }
+
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.SetVoiceSampleReadyToProceed(false);
+        }
     }
 
     void Update()
@@ -379,6 +384,10 @@ public class Task1ReadAloudController : MonoBehaviour
             yield return StartCoroutine(FadeCanvasGroup(finishedPanel, 0f, 1f, fadeDuration));
         }
         finishedPanelShown = true;
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.SetVoiceSampleReadyToProceed(true);
+        }
     }
 
     private void ProceedToNextScene()
