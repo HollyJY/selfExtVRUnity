@@ -12,16 +12,16 @@ public class InstructionPanelController : MonoBehaviour
 
     private void Update()
     {
-        // Use right-hand grip (hand trigger) as the primary VR input
-        float gripValue = OVRInput.Get(OVRInput.Axis1D.SecondaryHandTrigger);
-        if (gripValue > 0.1f)
+        // Use right-hand index trigger as the primary VR input
+        float triggerValue = OVRInput.Get(OVRInput.Axis1D.SecondaryIndexTrigger);
+        if (triggerValue > 0.1f)
         {
-            Debug.Log($"Right grip value: {gripValue}");
+            Debug.Log($"Right trigger value: {triggerValue}");
         }
 
-        if (OVRInput.GetDown(OVRInput.Button.SecondaryHandTrigger))
+        if (OVRInput.GetDown(OVRInput.Button.SecondaryIndexTrigger))
         {
-            Debug.Log("Right grip pressed, trying to go next scene");
+            Debug.Log("Right trigger pressed, trying to go next scene");
             TryGoNextScene();
         }
 

@@ -48,6 +48,7 @@ public class Task1ReadAloudController : MonoBehaviour
     private bool isRecording = false;
     private bool recordingCompleted = false;
     private bool hasProceededToNext = false;
+    private bool finishedPanelShown = false;
     private float recordingStartTime;
     private string currentBaseFileName = "";
 
@@ -76,6 +77,7 @@ public class Task1ReadAloudController : MonoBehaviour
             finishedPanel.gameObject.SetActive(false);
             finishedPanel.alpha = 0f;
         }
+        finishedPanelShown = false;
 
         // Pull participant id from global manager if available
         if (GameFlowManager.Instance != null && !string.IsNullOrEmpty(GameFlowManager.Instance.participantId))
@@ -109,7 +111,7 @@ public class Task1ReadAloudController : MonoBehaviour
             {
                 StopRecordingAndSave();
             }
-            else if (recordingCompleted && !hasProceededToNext)
+            else if (recordingCompleted && finishedPanelShown && !hasProceededToNext)
             {
                 ProceedToNextScene();
             }
@@ -321,6 +323,7 @@ public class Task1ReadAloudController : MonoBehaviour
         }
 
         recordingCompleted = true;
+        finishedPanelShown = false;
         StartCoroutine(ShowFinishedPanel());
     }
 
@@ -375,6 +378,7 @@ public class Task1ReadAloudController : MonoBehaviour
             finishedPanel.gameObject.SetActive(true);
             yield return StartCoroutine(FadeCanvasGroup(finishedPanel, 0f, 1f, fadeDuration));
         }
+        finishedPanelShown = true;
     }
 
     private void ProceedToNextScene()
