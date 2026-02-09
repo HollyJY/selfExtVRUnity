@@ -32,6 +32,11 @@ public class ConversationSequencerFourTurns : MonoBehaviour
     [Header("Control")]
     public bool autoStart = false;
 
+    [Header("Input")]
+    [Tooltip("Trigger value threshold for ending mic (0-1).")]
+    [Range(0.1f, 1f)]
+    public float triggerEndThreshold = 0.75f;
+
     [Header("B2 Gate")]
     public bool waitForB2Ready = true;
     public bool b2Ready = true;
@@ -213,11 +218,33 @@ public class ConversationSequencerFourTurns : MonoBehaviour
 
     private bool ShouldEndMicByInput()
     {
-        bool xrActive = XRSettings.isDeviceActive;
-        if (xrActive)
+        bool rightConnected = OVRInput.IsControllerConnected(OVRInput.Controller.RTouch);
+        bool leftConnected = OVRInput.IsControllerConnected(OVRInput.Controller.LTouch);
+        bool anyOvrController = rightConnected || leftConnected || OVRInput.IsControllerConnected(OVRInput.Controller.Touch);
+        bool xrActive = XRSettings.isDeviceActive || anyOvrController;
+        if (xrActive && anyOvrController)
         {
-            // Headset on: right-hand index trigger ends mic
-            return OVRInput.GetDown(OVRInput.Button.SecondaryIndexTrigger);
+            // Prefer analog trigger threshold with rising-edge detection; fall back to GetDown.
+            float rightValue = OVRInput.Get(OVRInput.Axis1D.SecondaryIndexTrigger);
+            float leftValue = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger);
+
+            bool rightEdge = rightValue >= triggerEndThreshold && prevRightTrigger < triggerEndThreshold;
+            bool leftEdge = leftValue >= triggerEndThreshold && prevLeftTrigger < triggerEndThreshold;
+
+            prevRightTrigger = rightValue;
+            prevLeftTrigger = leftValue;
+
+            if (rightEdge || leftEdge)
+                return true;
+
+            if (OVRInput.GetDown(OVRInput.Button.SecondaryIndexTrigger) ||
+                OVRInput.GetDown(OVRInput.Button.PrimaryIndexTrigger))
+                return true;
+        }
+        else
+        {
+            prevRightTrigger = 0f;
+            prevLeftTrigger = 0f;
         }
 
 #if ENABLE_INPUT_SYSTEM
@@ -227,6 +254,11 @@ public class ConversationSequencerFourTurns : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space))
             return true;
 #endif
+        if (Input.GetMouseButtonDown(0))
+            return true;
         return false;
     }
+
+    private float prevRightTrigger = 0f;
+    private float prevLeftTrigger = 0f;
 }
