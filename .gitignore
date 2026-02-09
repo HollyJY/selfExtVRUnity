@@ -23,6 +23,8 @@
 !Assets/StreamingAssets/Audio/**/expInfo_*.csv.meta
 !Assets/StreamingAssets/**.csv
 !Assets/StreamingAssets/**.csv.meta
+!Assets/StreamingAssets/ExpMaterial/
+!Assets/StreamingAssets/ExpMaterial.meta
 !Assets/StreamingAssets/ExpMaterial/**.csv
 !Assets/StreamingAssets/ExpMaterial/**.csv.meta
 !Assets/StreamingAssets/ExpMaterial/**.wav
