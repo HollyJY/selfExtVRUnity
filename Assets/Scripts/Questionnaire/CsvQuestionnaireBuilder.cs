@@ -129,12 +129,14 @@ public sealed class CsvQuestionnaireBuilder : MonoBehaviour
                 questionRoot = questionTemplate;
                 questionRoot.gameObject.SetActive(true);
                 templateUsed = true;
+                EnsureQuestionMarker(questionRoot.gameObject);
             }
             else
             {
                 var instance = Instantiate(questionTemplate.gameObject, controlsParent);
                 questionRoot = instance.GetComponent<RectTransform>();
                 questionRoot.gameObject.AddComponent<GeneratedQuestionMarker>();
+                EnsureQuestionMarker(questionRoot.gameObject);
                 questionRoot.gameObject.SetActive(true);
             }
 
@@ -185,6 +187,15 @@ public sealed class CsvQuestionnaireBuilder : MonoBehaviour
                     DestroyImmediate(markers[i].gameObject);
                 }
             }
+        }
+    }
+
+    private static void EnsureQuestionMarker(GameObject obj)
+    {
+        if (obj == null) return;
+        if (obj.GetComponent<QuestionItemMarker>() == null)
+        {
+            obj.AddComponent<QuestionItemMarker>();
         }
     }
 

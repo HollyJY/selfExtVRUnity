@@ -143,16 +143,16 @@ public sealed class PostQuestionPager : MonoBehaviour
         {
             var child = questionsRoot.GetChild(i) as RectTransform;
             if (child == null) continue;
-            if (!HasToggleGroup(child)) continue;
+            if (!HasQuestionMarker(child)) continue;
             results.Add(child);
         }
 
         return results;
     }
 
-    private static bool HasToggleGroup(Transform root)
+    private static bool HasQuestionMarker(Transform root)
     {
-        return root.GetComponentInChildren<ToggleGroup>(true) != null;
+        return root.GetComponent<QuestionItemMarker>() != null;
     }
 
     private static float GetPreferredHeight(RectTransform rect)
