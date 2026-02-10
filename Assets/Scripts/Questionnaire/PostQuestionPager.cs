@@ -14,6 +14,8 @@ public sealed class PostQuestionPager : MonoBehaviour
     [Header("Layout")]
     [SerializeField] private float extraTopPadding = 0f;
     [SerializeField] private float extraBottomPadding = 0f;
+    [Tooltip("If > 0, caps the number of questions per page regardless of height.")]
+    [SerializeField] private int maxQuestionsPerPage = 0;
 
     private readonly List<List<GameObject>> pages = new List<List<GameObject>>();
     private int currentPageIndex;
@@ -58,6 +60,14 @@ public sealed class PostQuestionPager : MonoBehaviour
             var item = candidates[i];
             float preferred = GetPreferredHeight(item);
             float addSpacing = currentPage.Count > 0 ? spacing : 0f;
+
+            if (maxQuestionsPerPage > 0 && currentPage.Count >= maxQuestionsPerPage)
+            {
+                pages.Add(currentPage);
+                currentPage = new List<GameObject>();
+                currentHeight = 0f;
+                addSpacing = 0f;
+            }
 
             if (currentPage.Count > 0 && currentHeight + addSpacing + preferred > maxHeight)
             {
