@@ -20,6 +20,18 @@ public sealed class PostQuestionPager : MonoBehaviour
     private readonly List<List<GameObject>> pages = new List<List<GameObject>>();
     private int currentPageIndex;
 
+    public void BindButtons(Toggle nextPage, Toggle finish)
+    {
+        if (nextPageToggle == null)
+        {
+            nextPageToggle = nextPage;
+        }
+        if (finishToggle == null)
+        {
+            finishToggle = finish;
+        }
+    }
+
     public void RefreshAndShowFirstPage()
     {
         BuildPages();

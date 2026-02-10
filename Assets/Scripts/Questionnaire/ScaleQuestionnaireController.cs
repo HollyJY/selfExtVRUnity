@@ -330,6 +330,7 @@ public sealed class ScaleQuestionnaireController : MonoBehaviour
         SetActiveSafe(postSubmitToggle != null ? postSubmitToggle.gameObject : null, true);
         if (postPager != null)
         {
+            postPager.BindButtons(postPageToggle, postSubmitToggle);
             postPager.RefreshAndShowFirstPage();
         }
         RaiseEvent(UiEvent.PostStarted, "");
