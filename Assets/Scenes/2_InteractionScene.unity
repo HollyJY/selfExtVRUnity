@@ -768,6 +768,7 @@ MonoBehaviour:
   startDelay: 2
   gapBetweenTurns: 0
   autoStart: 1
+  triggerEndThreshold: 0.75
   waitForB2Ready: 1
   b2Ready: 1
   phase: 0
@@ -3237,7 +3238,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   sequencer: {fileID: 137968810}
-  numberOfTrials: 1
+  numberOfTrials: 2
   audioRoot: Audio
   sessionId: P00
   participantGender: male
@@ -3250,7 +3251,7 @@ MonoBehaviour:
   scaleController: {fileID: 1927017700}
   scalesRoot: {fileID: 1927017697}
   hideDebaterDuringScales: 1
-  restAfterTrial: 6
+  restAfterTrial: 1
   writeCsvLog: 1
   logRelativePath: logs/experiment_log.csv
   ttsEndpoint: http://192.168.37.177:7003/api/v1/tts
@@ -15779,7 +15780,7 @@ MonoBehaviour:
   questionTemplate: {fileID: 1602918248}
   useTemplateAsFirst: 0
   disableTemplateAfterBuild: 1
-  clearPreviouslyGenerated: 1
+  clearPreviouslyGenerated: 0
   buildOnEnable: 1
 --- !u!114 &1923915314
 MonoBehaviour:
