@@ -331,18 +331,9 @@ public sealed class ScaleQuestionnaireController : MonoBehaviour
         if (postPager != null)
         {
             postPager.BindButtons(postPageToggle, postSubmitToggle);
-            StartCoroutine(RefreshPostPagerNextFrame());
-        }
-        RaiseEvent(UiEvent.PostStarted, "");
-    }
-
-    private IEnumerator RefreshPostPagerNextFrame()
-    {
-        yield return null; // wait one frame so builders can finish
-        if (postPager != null)
-        {
             postPager.RefreshAndShowFirstPage();
         }
+        RaiseEvent(UiEvent.PostStarted, "");
     }
 
     private static void SetActiveSafe(GameObject obj, bool active)

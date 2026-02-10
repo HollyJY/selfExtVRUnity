@@ -260,14 +260,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 148162055}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.24209121, z: 0, w: 0.9702535}
-  m_LocalPosition: {x: 1.46, y: 0.4, z: -0.06}
-  m_LocalScale: {x: 1.87, y: 1.87, z: 1.87}
+  m_LocalRotation: {x: -0, y: 0.5637915, z: -0, w: 0.82591724}
+  m_LocalPosition: {x: -0.27604216, y: 0.4, z: 0.8473948}
+  m_LocalScale: {x: 1.8700005, y: 1.87, z: 1.8700005}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1175499840}
   - {fileID: 383995550}
-  m_Father: {fileID: 1745558477}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 28.02, z: 0}
 --- !u!114 &148162057
 MonoBehaviour:
@@ -1376,8 +1376,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 657527751}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.6100353, z: -0, w: 0.7923742}
-  m_LocalPosition: {x: -0.997, y: 0, z: 2.772}
+  m_LocalRotation: {x: 0, y: 0.61003447, z: 0, w: 0.7923749}
+  m_LocalPosition: {x: -0.997, y: 0, z: 2.7702734}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2517,7 +2517,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 63fdd3dc0aa4d4dc8adbddf156d05465, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -0.4
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 63fdd3dc0aa4d4dc8adbddf156d05465, type: 3}
       propertyPath: m_LocalPosition.z
@@ -4283,7 +4283,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_text: "Welcome to the Experiment. \nYou can try to move your arms. \n\nWhen you
-    are ready, press the GRIP button with Middle Finger on back of your right controller.
+    are ready, press the TRIGGER button with Index Finger on back of your right controller.
     \n\nWe will go to next phase. "
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -4530,7 +4530,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1745558472}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.30406925, z: -0, w: 0.95264995}
+  m_LocalRotation: {x: 0, y: 0.3040663, z: 0, w: 0.9526509}
   m_LocalPosition: {x: -1.1, y: 0, z: 2.187}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -4538,7 +4538,6 @@ Transform:
   - {fileID: 850753757}
   - {fileID: 406472513}
   - {fileID: 873946260}
-  - {fileID: 148162056}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 35.404, z: 0}
 --- !u!1 &1767677776
@@ -5542,8 +5541,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   participantId: P00
-  participantGender: 1
-  talkerGender: 1
+  participantGender: 2
+  talkerGender: 2
   debaterGender: 1
   lobbySceneName: 0_ExpLobby
   voiceSampleSceneName: 1_VoiceSample
@@ -5888,6 +5887,7 @@ SceneRoots:
   - {fileID: 289942991}
   - {fileID: 78580986}
   - {fileID: 1745558477}
+  - {fileID: 148162056}
   - {fileID: 1719017554}
   - {fileID: 657527756}
   - {fileID: 1315311118}
