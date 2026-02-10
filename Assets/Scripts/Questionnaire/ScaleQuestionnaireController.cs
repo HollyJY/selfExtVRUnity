@@ -501,13 +501,6 @@ public sealed class ScaleQuestionnaireController : MonoBehaviour
         {
             return "unknown";
         }
-
-        const string suffix = "_session";
-        if (raw.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
-        {
-            return raw.Substring(0, raw.Length - suffix.Length);
-        }
-
         return raw;
     }
 
