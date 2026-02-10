@@ -16,6 +16,8 @@ public sealed class PostQuestionPager : MonoBehaviour
     [SerializeField] private float extraBottomPadding = 0f;
     [Tooltip("If > 0, caps the number of questions per page regardless of height.")]
     [SerializeField] private int maxQuestionsPerPage = 0;
+    [Header("Debug")]
+    [SerializeField] private bool logPagingDetails = false;
 
     private readonly List<List<GameObject>> pages = new List<List<GameObject>>();
     private int currentPageIndex;
@@ -49,6 +51,10 @@ public sealed class PostQuestionPager : MonoBehaviour
 
         if (questionsRoot == null || viewport == null)
         {
+            if (logPagingDetails)
+            {
+                Debug.LogWarning("PostQuestionPager: Missing questionsRoot or viewport.");
+            }
             return;
         }
 
@@ -61,6 +67,14 @@ public sealed class PostQuestionPager : MonoBehaviour
         }
 
         var candidates = CollectQuestionItems();
+        if (logPagingDetails)
+        {
+            Debug.Log($"PostQuestionPager: Candidates={candidates.Count} root={questionsRoot.name} viewportH={viewport.rect.height:F1} maxPerPage={maxQuestionsPerPage}");
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                Debug.Log($"PostQuestionPager: Candidate[{i}]={GetPath(candidates[i])}");
+            }
+        }
         var layout = questionsRoot.GetComponent<VerticalLayoutGroup>();
         float spacing = layout != null ? layout.spacing : 0f;
 
@@ -102,6 +116,15 @@ public sealed class PostQuestionPager : MonoBehaviour
         {
             pages.Add(new List<GameObject>());
         }
+
+        if (logPagingDetails)
+        {
+            for (int p = 0; p < pages.Count; p++)
+            {
+                string names = string.Join(", ", pages[p].ConvertAll(go => go != null ? go.name : "<null>"));
+                Debug.Log($"PostQuestionPager: Page[{p}] count={pages[p].Count} items={names}");
+            }
+        }
     }
 
     private void ShowPage(int index)
@@ -130,6 +153,11 @@ public sealed class PostQuestionPager : MonoBehaviour
         bool isLast = currentPageIndex == pages.Count - 1;
         SetActiveSafe(nextPageToggle != null ? nextPageToggle.gameObject : null, !isLast);
         SetActiveSafe(finishToggle != null ? finishToggle.gameObject : null, isLast);
+
+        if (logPagingDetails)
+        {
+            Debug.Log($"PostQuestionPager: ShowPage index={currentPageIndex} isLast={isLast} pages={pages.Count}");
+        }
 
         LayoutRebuilder.ForceRebuildLayoutImmediate(questionsRoot);
     }
@@ -172,5 +200,19 @@ public sealed class PostQuestionPager : MonoBehaviour
         {
             obj.SetActive(active);
         }
+    }
+
+    private static string GetPath(Transform t)
+    {
+        if (t == null) return "<null>";
+        var parts = new List<string>();
+        var current = t;
+        while (current != null)
+        {
+            parts.Add(current.name);
+            current = current.parent;
+        }
+        parts.Reverse();
+        return string.Join("/", parts);
     }
 }
