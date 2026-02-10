@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public sealed class ScaleQuestionnaireController : MonoBehaviour
@@ -31,7 +32,9 @@ public sealed class ScaleQuestionnaireController : MonoBehaviour
     [SerializeField] private Transform questionsRoot;
     [SerializeField] private Toggle submitToggle;
     [SerializeField] private Toggle postSubmitToggle;
+    [SerializeField] private Toggle postPageToggle;
     [SerializeField] private Transform postQuestionsRoot;
+    [SerializeField] private PostQuestionPager postPager;
 
     [Header("Panels")]
     [SerializeField] private GameObject questionLists;
@@ -47,6 +50,10 @@ public sealed class ScaleQuestionnaireController : MonoBehaviour
     [SerializeField] private string outputFolderRelative = "Audio";
     [SerializeField] private string filePrefix = "scaleAns_";
     [SerializeField] private string postFilePrefix = "resPostQues_";
+
+    [Header("Post Finish")]
+    [SerializeField] private bool loadSceneOnPostFinish = true;
+    [SerializeField] private string postFinishSceneName = "0_ExpLobby";
 
     private bool submitted;
     private string currentSessionId;
@@ -80,6 +87,11 @@ public sealed class ScaleQuestionnaireController : MonoBehaviour
             postSubmitToggle.onValueChanged.RemoveListener(OnPostSubmitToggleChanged);
             postSubmitToggle.onValueChanged.AddListener(OnPostSubmitToggleChanged);
         }
+        if (postPageToggle != null)
+        {
+            postPageToggle.onValueChanged.RemoveListener(OnPostPageToggleChanged);
+            postPageToggle.onValueChanged.AddListener(OnPostPageToggleChanged);
+        }
     }
 
     private void OnDisable()
@@ -91,6 +103,10 @@ public sealed class ScaleQuestionnaireController : MonoBehaviour
         if (postSubmitToggle != null)
         {
             postSubmitToggle.onValueChanged.RemoveListener(OnPostSubmitToggleChanged);
+        }
+        if (postPageToggle != null)
+        {
+            postPageToggle.onValueChanged.RemoveListener(OnPostPageToggleChanged);
         }
     }
 
@@ -239,6 +255,39 @@ public sealed class ScaleQuestionnaireController : MonoBehaviour
 
         suppressScaleStartEvent = true;
         ShowQuestionnaire();
+
+        if (loadSceneOnPostFinish && !string.IsNullOrWhiteSpace(postFinishSceneName))
+        {
+            UnityEngine.SceneManagement.SceneManager.LoadScene(postFinishSceneName);
+        }
+    }
+
+    private void OnPostPageToggleChanged(bool isOn)
+    {
+        if (!isOn)
+        {
+            return;
+        }
+
+        if (!ValidateAllAnswered(ResolvePostRoot()))
+        {
+            Debug.LogWarning("ScaleQuestionnaireController: Not all post questions are answered.");
+            if (postPageToggle != null)
+            {
+                postPageToggle.SetIsOnWithoutNotify(false);
+            }
+            return;
+        }
+
+        if (postPager != null)
+        {
+            postPager.GoToNextPage();
+        }
+
+        if (postPageToggle != null)
+        {
+            postPageToggle.SetIsOnWithoutNotify(false);
+        }
     }
 
     private void ShowQuestionnaire()
@@ -249,6 +298,10 @@ public sealed class ScaleQuestionnaireController : MonoBehaviour
         SetActiveSafe(postQues, false);
         SetActiveSafe(submitToggle != null ? submitToggle.gameObject : null, true);
         SetActiveSafe(postSubmitToggle != null ? postSubmitToggle.gameObject : null, false);
+        if (!rebuildOnShow && builder != null)
+        {
+            builder.ResetAllToggles();
+        }
         if (!suppressScaleStartEvent)
         {
             RaiseEvent(UiEvent.ScaleStarted, "");
@@ -275,6 +328,10 @@ public sealed class ScaleQuestionnaireController : MonoBehaviour
         SetActiveSafe(postQues, true);
         SetActiveSafe(submitToggle != null ? submitToggle.gameObject : null, false);
         SetActiveSafe(postSubmitToggle != null ? postSubmitToggle.gameObject : null, true);
+        if (postPager != null)
+        {
+            postPager.RefreshAndShowFirstPage();
+        }
         RaiseEvent(UiEvent.PostStarted, "");
     }
 

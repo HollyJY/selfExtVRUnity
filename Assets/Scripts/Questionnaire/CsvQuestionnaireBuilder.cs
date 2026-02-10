@@ -97,6 +97,11 @@ public sealed class CsvQuestionnaireBuilder : MonoBehaviour
         int insertIndex = questionTemplate.GetSiblingIndex();
         int questionNumber = 1;
         bool templateUsed = false;
+        bool templateWasActive = questionTemplate.gameObject.activeSelf;
+        if (!templateWasActive)
+        {
+            questionTemplate.gameObject.SetActive(true);
+        }
 
         for (int i = 1; i < rows.Count; i++)
         {
@@ -130,6 +135,7 @@ public sealed class CsvQuestionnaireBuilder : MonoBehaviour
                 var instance = Instantiate(questionTemplate.gameObject, controlsParent);
                 questionRoot = instance.GetComponent<RectTransform>();
                 questionRoot.gameObject.AddComponent<GeneratedQuestionMarker>();
+                questionRoot.gameObject.SetActive(true);
             }
 
             questionRoot.SetSiblingIndex(insertIndex++);
@@ -145,8 +151,22 @@ public sealed class CsvQuestionnaireBuilder : MonoBehaviour
         {
             questionTemplate.gameObject.SetActive(false);
         }
+        else if (!templateWasActive)
+        {
+            questionTemplate.gameObject.SetActive(false);
+        }
 
         LayoutRebuilder.ForceRebuildLayoutImmediate(controlsParent as RectTransform);
+    }
+
+    public void ResetAllToggles()
+    {
+        if (controlsParent == null) return;
+        var groups = controlsParent.GetComponentsInChildren<ToggleGroup>(true);
+        for (int i = 0; i < groups.Length; i++)
+        {
+            groups[i].SetAllTogglesOff(true);
+        }
     }
 
     private void ClearGeneratedQuestions()
