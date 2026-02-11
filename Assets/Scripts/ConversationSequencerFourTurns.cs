@@ -36,9 +36,6 @@ public class ConversationSequencerFourTurns : MonoBehaviour
     [Tooltip("Trigger value threshold for ending mic (0-1).")]
     [Range(0.1f, 1f)]
     public float triggerEndThreshold = 0.75f;
-    [Tooltip("Minimum recording seconds before trigger can end mic. 0 = no limit.")]
-    [Min(0f)]
-    public float minTriggerStopSeconds = 30f;
 
     [Header("B2 Gate")]
     public bool waitForB2Ready = true;
@@ -221,11 +218,6 @@ public class ConversationSequencerFourTurns : MonoBehaviour
 
     private bool ShouldEndMicByInput()
     {
-        if (minTriggerStopSeconds > 0f && micB != null && micB.RecordingElapsedSeconds < minTriggerStopSeconds)
-        {
-            return false;
-        }
-
         bool rightConnected = OVRInput.IsControllerConnected(OVRInput.Controller.RTouch);
         bool leftConnected = OVRInput.IsControllerConnected(OVRInput.Controller.LTouch);
         bool anyOvrController = rightConnected || leftConnected || OVRInput.IsControllerConnected(OVRInput.Controller.Touch);
