@@ -775,7 +775,6 @@ MonoBehaviour:
   gapBetweenTurns: 0
   autoStart: 1
   triggerEndThreshold: 0.75
-  minTriggerStopSeconds: 15
   waitForB2Ready: 1
   b2Ready: 1
   phase: 0
@@ -5571,11 +5570,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4236296434230476906, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4236296434230476906, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchorMin.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4236296434230476906, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_SizeDelta.x
@@ -5587,11 +5586,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4236296434230476906, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 75
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4236296434230476906, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -67
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5140576997555375988, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_Controller
@@ -5603,11 +5602,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6384598719118635554, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6384598719118635554, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchorMin.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6384598719118635554, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_SizeDelta.x
@@ -5619,11 +5618,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6384598719118635554, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 75
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6384598719118635554, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -75
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6860911344413419000, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchorMax.y
@@ -8618,7 +8617,7 @@ MonoBehaviour:
   hmdKeywords: Quest,Oculus,Meta,Headset,HMD
   sampleRate: 16000
   lengthSec: 10
-  loop: 0
+  loop: 1
   monitorPlayback: 1
   maxSpeakSeconds: 120
   OnMicStarted:
