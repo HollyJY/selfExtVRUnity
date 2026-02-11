@@ -44,6 +44,7 @@ public class MicSpeechController : MonoBehaviour
 
     public bool IsMicActive { get; private set; }
     public string CurrentDeviceName { get; private set; }
+    public float RecordingElapsedSeconds => recordingElapsed;
 
     void Reset()
     {

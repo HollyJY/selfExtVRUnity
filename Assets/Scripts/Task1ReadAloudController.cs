@@ -23,6 +23,9 @@ public class Task1ReadAloudController : MonoBehaviour
     public string microphoneDevice = "";    // Leave empty to use default device
     public int sampleRate = 16000;
     public float maxRecordDuration = 90f;   // Seconds of recording
+    [Tooltip("Minimum recording seconds before trigger can stop recording. 0 = no limit.")]
+    [Min(0f)]
+    public float minTriggerStopSeconds = 30f;
 
     [Header("File Settings")]
     public string participantId = "test00";
@@ -114,7 +117,10 @@ public class Task1ReadAloudController : MonoBehaviour
             }
             else if (isRecording)
             {
-                StopRecordingAndSave();
+                if (minTriggerStopSeconds <= 0f || (Time.time - recordingStartTime) >= minTriggerStopSeconds)
+                {
+                    StopRecordingAndSave();
+                }
             }
             else if (recordingCompleted && finishedPanelShown && !hasProceededToNext)
             {
