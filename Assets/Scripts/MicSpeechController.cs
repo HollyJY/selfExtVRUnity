@@ -19,6 +19,9 @@ public class MicSpeechController : MonoBehaviour
     public int lengthSec = 10;                    // ring buffer length
     public bool loop = true;                      // ring buffer looping
     public bool monitorPlayback = true;           // if true, you hear the mic in headset/speakers
+    [Tooltip("Monitoring latency in milliseconds to avoid reading unwritten samples.")]
+    [Range(0f, 200f)]
+    public float monitorLatencyMs = 50f;
 
     [Header("Limits")]
     public float maxSpeakSeconds = 120f;          // safety cap for B1
@@ -130,6 +133,20 @@ public class MicSpeechController : MonoBehaviour
         {
             elapsed += Time.deltaTime;
             recordingElapsed = elapsed;
+            if (monitorPlayback && audioSource != null && audioSource.clip != null)
+            {
+                int micPos = Microphone.GetPosition(device);
+                if (micPos > 0)
+                {
+                    int latencySamples = Mathf.RoundToInt(sampleRate * (monitorLatencyMs / 1000f));
+                    int target = micPos - latencySamples;
+                    if (target < 0)
+                        target += audioSource.clip.samples;
+                    audioSource.timeSamples = target;
+                    if (!audioSource.isPlaying)
+                        audioSource.Play();
+                }
+            }
             yield return null;
         }
 
