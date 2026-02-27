@@ -2196,7 +2196,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   sequencer: {fileID: 137968810}
-  numberOfTrials: 12
+  numberOfTrials: 0
   audioRoot: Audio
   sessionId: P29
   participantGender: female
@@ -3173,6 +3173,7 @@ MonoBehaviour:
   disableOnStart: 1
   rebuildOnShow: 0
   hideOnSubmit: 1
+  logValidationDetails: 1
   outputFolderRelative: Audio
   filePrefix: resScale_
   postFilePrefix: resPostQues_
