@@ -44,7 +44,7 @@ public class GameFlowManager : MonoBehaviour
     public string femaleTalkerMirroredName = "female_talkerMirrored";
 
     [Header("Logging")]
-    [Tooltip("Write a CSV log under StreamingAssets/logs (Editor) or persistentDataPath/logs (build)")]
+    [Tooltip("Write a CSV log under StreamingAssets/Audio/<session>_session (Editor) or persistentDataPath/Audio/<session>_session (build)")]
     public bool writeCsvLog = true;
 
     private string logDirectory;
@@ -172,6 +172,27 @@ public class GameFlowManager : MonoBehaviour
         Log(evt, detail, phase, trial);
     }
 
+    public float GetRealtimeSinceSessionStart()
+    {
+        return Time.realtimeSinceStartup - t0;
+    }
+
+    public string GetSessionIdForPaths()
+    {
+        if (string.IsNullOrWhiteSpace(participantId))
+        {
+            return "no_id";
+        }
+
+        const string suffix = "_session";
+        if (participantId.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+        {
+            return participantId.Substring(0, participantId.Length - suffix.Length);
+        }
+
+        return participantId;
+    }
+
     private void SetupLogging()
     {
         if (logReady || !writeCsvLog) return;
@@ -188,13 +209,15 @@ public class GameFlowManager : MonoBehaviour
 #else
         string baseDir = Application.persistentDataPath;
 #endif
-        logDirectory = Path.Combine(baseDir, "logs");
+        string sessionIdForPath = GetSessionIdForPaths();
+        string sessionFolder = sessionIdForPath + "_session";
+        logDirectory = Path.Combine(baseDir, "Audio", sessionFolder);
         if (!Directory.Exists(logDirectory))
         {
             Directory.CreateDirectory(logDirectory);
         }
 
-        string logFileName = $"{DateTime.UtcNow:yyyyMMdd}_{participantId}_log.csv";
+        string logFileName = $"{DateTime.UtcNow:yyyyMMdd}_{sessionIdForPath}_log.csv";
         logFilePath = Path.Combine(logDirectory, logFileName);
         if (!File.Exists(logFilePath))
         {
@@ -210,7 +233,7 @@ public class GameFlowManager : MonoBehaviour
         if (!logReady) SetupLogging();
         if (!logReady) return;
         string iso = DateTime.UtcNow.ToString("o");
-        float rt = Time.realtimeSinceStartup - t0;
+        float rt = GetRealtimeSinceSessionStart();
         string sceneName = SceneManager.GetActiveScene().name;
         string line = $"{iso},{rt:F3},{Escape(sceneName)},{Escape(evt)},{Escape(trial)},{Escape(phase)},{Escape(participantId)},{participantGender},{talkerGender},{Escape(detail)}\n";
         File.AppendAllText(logFilePath, line);

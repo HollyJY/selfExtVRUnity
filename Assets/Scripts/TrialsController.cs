@@ -36,7 +36,7 @@ public class TrialsController : MonoBehaviour
 
     [Header("Logging")]
     public bool writeCsvLog = true;
-    public string logRelativePath = "logs/experiment_log.csv";  // relative under StreamingAssets (Editor) / persistentDataPath (Build) if GameFlowManager unavailable
+    public string logRelativePath = "Audio/<session>_session/<date>_<session>_log.csv";  // used only if GameFlowManager is missing
 
     [Header("TTS")]
     [Tooltip("Endpoint for TTS POST JSON")]
@@ -209,8 +209,10 @@ public class TrialsController : MonoBehaviour
     #else
         string baseDir = Application.persistentDataPath;
 #   endif
-        string logFileName = sessionId + "_log.csv";
-        logFullPath = Path.Combine(baseDir, "logs");
+        string sessionIdForPath = GetSessionId();
+        string sessionFolder = GetSessionFolderId();
+        string logFileName = $"{DateTime.UtcNow:yyyyMMdd}_{sessionIdForPath}_log.csv";
+        logFullPath = Path.Combine(baseDir, audioRoot, sessionFolder);
         if (!Directory.Exists(logFullPath)) Directory.CreateDirectory(logFullPath);
         logFullPath = Path.Combine(logFullPath, logFileName);
         if (!File.Exists(logFullPath))

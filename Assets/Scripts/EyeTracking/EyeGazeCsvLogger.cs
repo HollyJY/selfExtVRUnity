@@ -19,14 +19,16 @@ public class EyeGazeCsvLogger : MonoBehaviour
     [Header("Output")]
     [SerializeField] private bool writeSampleRows = true;
     [SerializeField] private bool writeEnterExitRows = true;
-    [SerializeField] private string outputSubFolder = "logs";
-    [SerializeField] private string filePrefix = "eye_gaze";
+    [SerializeField] private string audioRootFolder = "Audio";
+    [SerializeField] private string sessionIdOverride = "";
 
     [Header("Debug")]
     [SerializeField] private bool debugDrawRay = false;
 
     private float nextSampleTime;
-    private float sessionT0;
+    private bool useGameFlowTimeBase;
+    private string resolvedSessionId;
+    private float localT0;
     private string outputPath;
     private StringBuilder buffer;
     private EyeGazeTarget currentTarget;
@@ -35,8 +37,9 @@ public class EyeGazeCsvLogger : MonoBehaviour
 
     private void Start()
     {
-        sessionT0 = Time.realtimeSinceStartup;
-        nextSampleTime = sessionT0;
+        ResolveSessionContext();
+        localT0 = Time.realtimeSinceStartup;
+        nextSampleTime = Time.realtimeSinceStartup;
         buffer = new StringBuilder(8192);
 
         SetupOutputPath();
@@ -136,19 +139,18 @@ public class EyeGazeCsvLogger : MonoBehaviour
 
     private void SetupOutputPath()
     {
-        string participantId = "no_id";
-        if (GameFlowManager.Instance != null && !string.IsNullOrWhiteSpace(GameFlowManager.Instance.participantId))
-        {
-            participantId = GameFlowManager.Instance.participantId;
-        }
-
-        string dir = Path.Combine(Application.persistentDataPath, outputSubFolder);
+#if UNITY_EDITOR
+        string baseDir = Application.streamingAssetsPath;
+#else
+        string baseDir = Application.persistentDataPath;
+#endif
+        string dir = Path.Combine(baseDir, audioRootFolder, resolvedSessionId + "_session");
         if (!Directory.Exists(dir))
         {
             Directory.CreateDirectory(dir);
         }
 
-        string fileName = $"{DateTime.UtcNow:yyyyMMdd_HHmmss}_{participantId}_{filePrefix}.csv";
+        string fileName = $"{DateTime.UtcNow:yyyyMMdd}_{resolvedSessionId}_log_eye.csv";
         outputPath = Path.Combine(dir, fileName);
         Debug.Log($"EyeGazeCsvLogger: writing to {outputPath}");
     }
@@ -177,7 +179,7 @@ public class EyeGazeCsvLogger : MonoBehaviour
         Vector3 hitNormal)
     {
         string iso = DateTime.UtcNow.ToString("o");
-        float rt = Time.realtimeSinceStartup - sessionT0;
+        float rt = GetRealtimeSeconds();
         string scene = SceneManager.GetActiveScene().name;
 
         buffer.Append(iso).Append(',')
@@ -219,5 +221,47 @@ public class EyeGazeCsvLogger : MonoBehaviour
         }
 
         return s;
+    }
+
+    private void ResolveSessionContext()
+    {
+        useGameFlowTimeBase = GameFlowManager.Instance != null;
+        resolvedSessionId = ResolveSessionId();
+    }
+
+    private string ResolveSessionId()
+    {
+        if (!string.IsNullOrWhiteSpace(sessionIdOverride))
+        {
+            return StripSessionSuffix(sessionIdOverride.Trim());
+        }
+
+        if (GameFlowManager.Instance != null)
+        {
+            return GameFlowManager.Instance.GetSessionIdForPaths();
+        }
+
+        return "no_id";
+    }
+
+    private float GetRealtimeSeconds()
+    {
+        if (useGameFlowTimeBase && GameFlowManager.Instance != null)
+        {
+            return GameFlowManager.Instance.GetRealtimeSinceSessionStart();
+        }
+
+        return Time.realtimeSinceStartup - localT0;
+    }
+
+    private static string StripSessionSuffix(string value)
+    {
+        const string suffix = "_session";
+        if (value.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+        {
+            return value.Substring(0, value.Length - suffix.Length);
+        }
+
+        return value;
     }
 }
