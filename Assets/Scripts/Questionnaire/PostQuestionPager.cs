@@ -16,6 +16,8 @@ public sealed class PostQuestionPager : MonoBehaviour
     [SerializeField] private float extraBottomPadding = 0f;
     [Tooltip("If > 0, caps the number of questions per page regardless of height.")]
     [SerializeField] private int maxQuestionsPerPage = 0;
+    [Tooltip("Show finish button from this page (1-based). 0 means only on the last page.")]
+    [SerializeField] private int showFinishFromPage = 0;
     [Header("Debug")]
     [SerializeField] private bool logPagingDetails = false;
 
@@ -43,6 +45,11 @@ public sealed class PostQuestionPager : MonoBehaviour
     public void GoToNextPage()
     {
         ShowPage(currentPageIndex + 1);
+    }
+
+    public bool IsCurrentPageFinishEligible()
+    {
+        return IsFinishEligiblePage(currentPageIndex);
     }
 
     private void BuildPages()
@@ -112,6 +119,16 @@ public sealed class PostQuestionPager : MonoBehaviour
             pages.Add(currentPage);
         }
 
+        // Remove pages that only contain destroyed/null entries.
+        for (int p = pages.Count - 1; p >= 0; p--)
+        {
+            pages[p].RemoveAll(go => go == null);
+            if (pages[p].Count == 0)
+            {
+                pages.RemoveAt(p);
+            }
+        }
+
         if (pages.Count == 0)
         {
             pages.Add(new List<GameObject>());
@@ -141,22 +158,30 @@ public sealed class PostQuestionPager : MonoBehaviour
         var all = CollectQuestionItems();
         for (int i = 0; i < all.Count; i++)
         {
-            all[i].gameObject.SetActive(false);
+            if (all[i] != null && all[i].gameObject != null)
+            {
+                all[i].gameObject.SetActive(false);
+            }
         }
 
         var page = pages[currentPageIndex];
+        page.RemoveAll(go => go == null);
         for (int i = 0; i < page.Count; i++)
         {
-            page[i].SetActive(true);
+            if (page[i] != null)
+            {
+                page[i].SetActive(true);
+            }
         }
 
         bool isLast = currentPageIndex == pages.Count - 1;
-        SetActiveSafe(nextPageToggle != null ? nextPageToggle.gameObject : null, !isLast);
-        SetActiveSafe(finishToggle != null ? finishToggle.gameObject : null, isLast);
+        bool finishEligible = IsFinishEligiblePage(currentPageIndex);
+        SetActiveSafe(nextPageToggle != null ? nextPageToggle.gameObject : null, !isLast && !finishEligible);
+        SetActiveSafe(finishToggle != null ? finishToggle.gameObject : null, finishEligible);
 
         if (logPagingDetails)
         {
-            Debug.Log($"PostQuestionPager: ShowPage index={currentPageIndex} isLast={isLast} pages={pages.Count}");
+            Debug.Log($"PostQuestionPager: ShowPage index={currentPageIndex} isLast={isLast} finishEligible={finishEligible} pages={pages.Count}");
         }
 
         LayoutRebuilder.ForceRebuildLayoutImmediate(questionsRoot);
@@ -171,6 +196,7 @@ public sealed class PostQuestionPager : MonoBehaviour
         {
             var child = questionsRoot.GetChild(i) as RectTransform;
             if (child == null) continue;
+            if (child.gameObject == null) continue;
             if (!HasQuestionMarker(child)) continue;
             results.Add(child);
         }
@@ -180,7 +206,15 @@ public sealed class PostQuestionPager : MonoBehaviour
 
     private static bool HasQuestionMarker(Transform root)
     {
-        return root.GetComponent<QuestionItemMarker>() != null;
+        if (root == null) return false;
+        try
+        {
+            return root.GetComponent<QuestionItemMarker>() != null;
+        }
+        catch (MissingReferenceException)
+        {
+            return false;
+        }
     }
 
     private static float GetPreferredHeight(RectTransform rect)
@@ -214,5 +248,16 @@ public sealed class PostQuestionPager : MonoBehaviour
         }
         parts.Reverse();
         return string.Join("/", parts);
+    }
+
+    private bool IsFinishEligiblePage(int pageIndex)
+    {
+        if (showFinishFromPage > 0)
+        {
+            int targetIndex = Mathf.Max(0, showFinishFromPage - 1);
+            return pageIndex >= targetIndex;
+        }
+
+        return pageIndex >= pages.Count - 1;
     }
 }

@@ -222,7 +222,7 @@ public sealed class ScaleQuestionnaireController : MonoBehaviour
             return;
         }
 
-        if (!ValidateAllAnswered(ResolvePostRoot()))
+        if (!ValidateAllAnswered(ResolvePostRoot(), includeInactiveGroups: true))
         {
             Debug.LogWarning("ScaleQuestionnaireController: Not all post questions are answered.");
             if (postSubmitToggle != null)
@@ -234,7 +234,7 @@ public sealed class ScaleQuestionnaireController : MonoBehaviour
 
         try
         {
-            SaveAnswers(ResolvePostRoot(), postFilePrefix, out lastPostSavePath);
+            SaveAnswers(ResolvePostRoot(), postFilePrefix, out lastPostSavePath, includeInactiveGroups: true);
         }
         catch (Exception ex)
         {
@@ -270,7 +270,7 @@ public sealed class ScaleQuestionnaireController : MonoBehaviour
             return;
         }
 
-        if (!ValidateAllAnswered(ResolvePostRoot()))
+        if (!ValidateAllAnswered(ResolvePostRoot(), includeInactiveGroups: false))
         {
             Debug.LogWarning("ScaleQuestionnaireController: Not all post questions are answered.");
             if (postPageToggle != null)
@@ -345,13 +345,13 @@ public sealed class ScaleQuestionnaireController : MonoBehaviour
         }
     }
 
-    private bool ValidateAllAnswered(Transform root)
+    private bool ValidateAllAnswered(Transform root, bool includeInactiveGroups = false)
     {
         var groups = GetQuestionGroups(root);
         for (int i = 0; i < groups.Count; i++)
         {
             var group = groups[i];
-            if (!group.gameObject.activeInHierarchy)
+            if (!includeInactiveGroups && !group.gameObject.activeInHierarchy)
             {
                 continue;
             }
@@ -379,7 +379,7 @@ public sealed class ScaleQuestionnaireController : MonoBehaviour
         return true;
     }
 
-    private void SaveAnswers(Transform root, string prefix, out string savePath)
+    private void SaveAnswers(Transform root, string prefix, out string savePath, bool includeInactiveGroups = false)
     {
         string baseDir = Application.streamingAssetsPath;
         string folder = Path.Combine(baseDir, outputFolderRelative, currentSessionId);
@@ -401,7 +401,7 @@ public sealed class ScaleQuestionnaireController : MonoBehaviour
             for (int i = 0; i < groups.Count; i++)
             {
                 var group = groups[i];
-                if (!group.gameObject.activeInHierarchy)
+                if (!includeInactiveGroups && !group.gameObject.activeInHierarchy)
                 {
                     continue;
                 }
