@@ -45,6 +45,7 @@ public sealed class ScaleQuestionnaireController : MonoBehaviour
     [SerializeField] private bool disableOnStart = true;
     [SerializeField] private bool rebuildOnShow = true;
     [SerializeField] private bool hideOnSubmit = true;
+    [SerializeField] private bool logValidationDetails = true;
 
     [Header("Save")]
     [SerializeField] private string outputFolderRelative = "Audio";
@@ -367,6 +368,10 @@ public sealed class ScaleQuestionnaireController : MonoBehaviour
 
             if (!hasSelection)
             {
+                if (logValidationDetails)
+                {
+                    Debug.LogWarning($"ScaleQuestionnaireController: Unanswered group at {GetPath(group.transform)}");
+                }
                 return false;
             }
         }
@@ -430,8 +435,34 @@ public sealed class ScaleQuestionnaireController : MonoBehaviour
     private List<ToggleGroup> GetQuestionGroups(Transform root)
     {
         var resolvedRoot = root != null ? root : transform;
-        var groups = new List<ToggleGroup>(resolvedRoot.GetComponentsInChildren<ToggleGroup>(true));
-        return groups;
+        var groups = new List<ToggleGroup>();
+
+        // Prefer groups that belong to marked question items.
+        // This avoids unrelated ToggleGroups in the same panel breaking validation/submission.
+        var markedItems = resolvedRoot.GetComponentsInChildren<QuestionItemMarker>(true);
+        for (int i = 0; i < markedItems.Length; i++)
+        {
+            var item = markedItems[i];
+            if (item == null) continue;
+
+            var itemGroups = item.GetComponentsInChildren<ToggleGroup>(true);
+            for (int j = 0; j < itemGroups.Length; j++)
+            {
+                var g = itemGroups[j];
+                if (g != null)
+                {
+                    groups.Add(g);
+                }
+            }
+        }
+
+        if (groups.Count > 0)
+        {
+            return groups;
+        }
+
+        // Fallback for legacy/manual questionnaires without QuestionItemMarker.
+        return new List<ToggleGroup>(resolvedRoot.GetComponentsInChildren<ToggleGroup>(true));
     }
 
     private Transform ResolvePostRoot()
@@ -575,5 +606,19 @@ public sealed class ScaleQuestionnaireController : MonoBehaviour
             return '"' + s.Replace("\"", "\"\"") + '"';
         }
         return s;
+    }
+
+    private static string GetPath(Transform t)
+    {
+        if (t == null) return "<null>";
+        var parts = new List<string>();
+        var current = t;
+        while (current != null)
+        {
+            parts.Add(current.name);
+            current = current.parent;
+        }
+        parts.Reverse();
+        return string.Join("/", parts);
     }
 }
