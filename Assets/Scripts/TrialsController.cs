@@ -255,6 +255,27 @@ public class TrialsController : MonoBehaviour
 
     private int currentTrialIndex = 0;
 
+    public int GetCurrentTrialIndexForLogging()
+    {
+        return currentTrialIndex;
+    }
+
+    public int GetCurrentConditionForLogging()
+    {
+        if (currentTrialIndex > 0 && trialCondition.TryGetValue(currentTrialIndex, out int condition))
+        {
+            return condition;
+        }
+
+        return 0;
+    }
+
+    public string GetCurrentPhaseForLogging()
+    {
+        if (sequencer == null) return "";
+        return sequencer.phase.ToString();
+    }
+
     private IEnumerator RunExperiment()
     {
         if (sequencer == null)

@@ -7690,7 +7690,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66374459301d14e05b89ea7623013a23, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EyeGazeCsvLogger
-  gazeOrigin: {fileID: 139289021}
+  combinedGazeOrigin: {fileID: 1728305030}
+  leftGazeOrigin: {fileID: 1231320080}
+  rightGazeOrigin: {fileID: 2065663781}
+  preferCombinedForHit: 1
+  hmdTransform: {fileID: 1728305030}
+  xrOriginTransform: {fileID: 1564724409}
+  trialsController: {fileID: 571178847}
   sampleInterval: 0.1
   maxDistance: 20
   targetLayers:
@@ -7698,8 +7704,9 @@ MonoBehaviour:
     m_Bits: 4294967295
   writeSampleRows: 1
   writeEnterExitRows: 1
-  outputSubFolder: logs
-  filePrefix: eye_gaze
+  writeRawRows: 1
+  audioRootFolder: Audio
+  sessionIdOverride: 
   debugDrawRay: 0
 --- !u!4 &1499103904
 Transform:
@@ -13706,6 +13713,7 @@ MonoBehaviour:
   extraTopPadding: 0
   extraBottomPadding: 0
   maxQuestionsPerPage: 8
+  showFinishFromPage: 0
   logPagingDetails: 1
 --- !u!1 &2065663780
 GameObject:
