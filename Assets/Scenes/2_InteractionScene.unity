@@ -771,8 +771,8 @@ MonoBehaviour:
   lineA1: 
   lineA2: 
   lineB2: 
-  startDelay: 2
-  gapBetweenTurns: 0
+  startDelay: 3
+  gapBetweenTurns: 2
   autoStart: 1
   triggerEndThreshold: 0.75
   waitForB2Ready: 1
@@ -2190,12 +2190,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   sequencer: {fileID: 137968810}
-  numberOfTrials: 1
+  numberOfTrials: 12
   audioRoot: Audio
-  sessionId: P00
+  sessionId: P27
   participantGender: female
-  talkerGender: female
-  debaterGender: female
+  talkerGender: male
+  debaterGender: male
   maleTalkerMirrored: {fileID: 1697804554}
   femaleTalkerMirrored: {fileID: 966134315}
   maleDebater: {fileID: 1769536936}
@@ -5710,11 +5710,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4236296434230476906, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4236296434230476906, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchorMin.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4236296434230476906, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_SizeDelta.x
@@ -5726,11 +5726,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4236296434230476906, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 0
+      value: 75
       objectReference: {fileID: 0}
     - target: {fileID: 4236296434230476906, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 0
+      value: -67
       objectReference: {fileID: 0}
     - target: {fileID: 5140576997555375988, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_Controller
@@ -5742,11 +5742,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6384598719118635554, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6384598719118635554, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchorMin.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6384598719118635554, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_SizeDelta.x
@@ -5758,11 +5758,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6384598719118635554, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 0
+      value: 75
       objectReference: {fileID: 0}
     - target: {fileID: 6384598719118635554, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 0
+      value: -75
       objectReference: {fileID: 0}
     - target: {fileID: 6860911344413419000, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchorMax.y
@@ -7679,6 +7679,8 @@ MonoBehaviour:
   hmdTransform: {fileID: 1728305030}
   xrOriginTransform: {fileID: 1564724409}
   trialsController: {fileID: 571178847}
+  waitForSessionIdReady: 1
+  maxWaitForSessionIdSeconds: 60
   sampleInterval: 0.1
   maxDistance: 20
   targetLayers:
@@ -8820,7 +8822,7 @@ MonoBehaviour:
   overrideDeviceName: 
   hmdKeywords: Quest,Oculus,Meta,Headset,HMD
   sampleRate: 16000
-  lengthSec: 10
+  lengthSec: 20
   loop: 1
   monitorPlayback: 1
   maxSpeakSeconds: 120
