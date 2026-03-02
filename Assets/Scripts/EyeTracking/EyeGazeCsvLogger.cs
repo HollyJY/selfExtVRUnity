@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections;
 using System.IO;
 using System.Reflection;
 using System.Text;
@@ -28,6 +29,12 @@ public class EyeGazeCsvLogger : MonoBehaviour
     [Header("Experiment Markers")]
     [SerializeField] private TrialsController trialsController;
 
+    [Header("Startup")]
+    [Tooltip("Wait for a valid session id before creating log files.")]
+    [SerializeField] private bool waitForSessionIdReady = true;
+    [Tooltip("Max seconds to wait. <= 0 means wait forever.")]
+    [SerializeField] private float maxWaitForSessionIdSeconds = 60f;
+
     [Header("Raycast (Debug Channel)")]
     [SerializeField] private float sampleInterval = 0.1f;
     [SerializeField] private float maxDistance = 20f;
@@ -47,6 +54,7 @@ public class EyeGazeCsvLogger : MonoBehaviour
     private bool useGameFlowTimeBase;
     private string resolvedSessionId;
     private float localT0;
+    private bool initialized;
 
     private string outputPath;
     private string rawOutputPath;
@@ -62,9 +70,25 @@ public class EyeGazeCsvLogger : MonoBehaviour
 
     private void Start()
     {
-        ResolveSessionContext();
         AutoResolveReferences();
+        StartCoroutine(InitializeWhenReady());
+    }
 
+    private IEnumerator InitializeWhenReady()
+    {
+        float waitStart = Time.realtimeSinceStartup;
+        while (waitForSessionIdReady && !HasReadySessionId())
+        {
+            if (maxWaitForSessionIdSeconds > 0f &&
+                Time.realtimeSinceStartup - waitStart >= maxWaitForSessionIdSeconds)
+            {
+                Debug.LogWarning("EyeGazeCsvLogger: session id not ready before timeout; falling back to no_id.");
+                break;
+            }
+            yield return null;
+        }
+
+        ResolveSessionContext();
         localT0 = Time.realtimeSinceStartup;
         nextSampleTime = Time.realtimeSinceStartup;
 
@@ -76,10 +100,12 @@ public class EyeGazeCsvLogger : MonoBehaviour
         WriteRawHeaderIfNeeded();
 
         AppendRawMarker("logger_start", "eye logger started");
+        initialized = true;
     }
 
     private void Update()
     {
+        if (!initialized) return;
         if (Time.realtimeSinceStartup < nextSampleTime) return;
 
         SampleAndLog();
@@ -98,6 +124,7 @@ public class EyeGazeCsvLogger : MonoBehaviour
 
     private void OnApplicationQuit()
     {
+        if (!initialized) return;
         AppendRawMarker("logger_stop", "application quit");
         FlushBuffer();
         FlushRawBuffer();
@@ -105,6 +132,7 @@ public class EyeGazeCsvLogger : MonoBehaviour
 
     private void OnDisable()
     {
+        if (!initialized) return;
         AppendRawMarker("logger_stop", "component disabled");
         FlushBuffer();
         FlushRawBuffer();
@@ -668,6 +696,28 @@ public class EyeGazeCsvLogger : MonoBehaviour
         resolvedSessionId = ResolveSessionId();
     }
 
+    private bool HasReadySessionId()
+    {
+        if (!string.IsNullOrWhiteSpace(sessionIdOverride))
+        {
+            return true;
+        }
+
+        if (trialsController != null && !string.IsNullOrWhiteSpace(trialsController.sessionId))
+        {
+            return true;
+        }
+
+        if (GameFlowManager.Instance != null &&
+            !string.IsNullOrWhiteSpace(GameFlowManager.Instance.participantId) &&
+            !string.Equals(GameFlowManager.Instance.participantId, "no_id", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     private void AutoResolveReferences()
     {
         if (trialsController == null)
@@ -681,6 +731,11 @@ public class EyeGazeCsvLogger : MonoBehaviour
         if (!string.IsNullOrWhiteSpace(sessionIdOverride))
         {
             return StripSessionSuffix(sessionIdOverride.Trim());
+        }
+
+        if (trialsController != null && !string.IsNullOrWhiteSpace(trialsController.sessionId))
+        {
+            return StripSessionSuffix(trialsController.sessionId.Trim());
         }
 
         if (GameFlowManager.Instance != null)
