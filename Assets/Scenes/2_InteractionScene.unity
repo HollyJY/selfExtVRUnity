@@ -772,7 +772,7 @@ MonoBehaviour:
   lineA2: 
   lineB2: 
   startDelay: 3
-  gapBetweenTurns: 2
+  gapBetweenTurns: 0.5
   autoStart: 1
   triggerEndThreshold: 0.75
   waitForB2Ready: 1
@@ -1409,7 +1409,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1636494367210893904, guid: dd715654954b925459377f749f67174e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.004
+      value: 0.006
       objectReference: {fileID: 0}
     - target: {fileID: 1636494367210893904, guid: dd715654954b925459377f749f67174e, type: 3}
       propertyPath: m_LocalPosition.y
@@ -1417,7 +1417,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1636494367210893904, guid: dd715654954b925459377f749f67174e, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.17
+      value: -0.115
       objectReference: {fileID: 0}
     - target: {fileID: 1636494367210893904, guid: dd715654954b925459377f749f67174e, type: 3}
       propertyPath: m_LocalRotation.w
@@ -2192,10 +2192,10 @@ MonoBehaviour:
   sequencer: {fileID: 137968810}
   numberOfTrials: 12
   audioRoot: Audio
-  sessionId: P27
-  participantGender: female
-  talkerGender: male
-  debaterGender: male
+  sessionId: P00
+  participantGender: male
+  talkerGender: female
+  debaterGender: female
   maleTalkerMirrored: {fileID: 1697804554}
   femaleTalkerMirrored: {fileID: 966134315}
   maleDebater: {fileID: 1769536936}
@@ -8822,7 +8822,7 @@ MonoBehaviour:
   overrideDeviceName: 
   hmdKeywords: Quest,Oculus,Meta,Headset,HMD
   sampleRate: 16000
-  lengthSec: 20
+  lengthSec: 120
   loop: 1
   monitorPlayback: 1
   maxSpeakSeconds: 120
@@ -8957,7 +8957,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   playOnStart: 0
-  preDelay: 0
+  preDelay: 1
   postDelay: 0.05
 --- !u!95 &1650238748
 Animator:
@@ -13945,7 +13945,7 @@ Transform:
   m_GameObject: {fileID: 2079999548}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.3040663, z: 0, w: 0.9526509}
-  m_LocalPosition: {x: -1.1, y: 0, z: 2.187}
+  m_LocalPosition: {x: -1.108, y: 0, z: 1.44}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -14958,7 +14958,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 2, z: 1}
+  m_Size: {x: 0.5, y: 2, z: 0.5}
   m_Center: {x: 0, y: 0.7, z: 0}
 --- !u!4 &2137235945 stripped
 Transform:
