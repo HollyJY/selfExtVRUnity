@@ -1,5 +1,6 @@
 # Track only docs plus Assets/Scripts and Assets/Scenes (and their .meta)
 *
+.DS_Store
 
 !.gitignore
 !*.md
