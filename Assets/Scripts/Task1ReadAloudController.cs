@@ -23,6 +23,16 @@ public class Task1ReadAloudController : MonoBehaviour
     public string microphoneDevice = "";    // Leave empty to use default device
     public int sampleRate = 16000;
     public float maxRecordDuration = 90f;   // Seconds of recording
+    public float microphoneReadyTimeout = 3f;
+    public float minValidRecordingSeconds = 0.25f;
+    public float silencePeakThreshold = 0.003f;
+    public float silenceRmsThreshold = 0.001f;
+
+    [Header("Mic Monitoring")]
+    public bool monitorPlayback = true;
+    public AudioSource monitorAudioSource;
+    [Range(0f, 1f)]
+    public float monitorVolume = 1f;
 
     [Header("File Settings")]
     public string participantId = "test00";
@@ -46,6 +56,8 @@ public class Task1ReadAloudController : MonoBehaviour
 
     private AudioClip recordingClip;
     private bool isRecording = false;
+    private bool isStartingRecording = false;
+    private bool recordingFailed = false;
     private bool recordingCompleted = false;
     private bool hasProceededToNext = false;
     private bool finishedPanelShown = false;
@@ -92,6 +104,8 @@ public class Task1ReadAloudController : MonoBehaviour
             progressBar.value = 0f;
         }
 
+        SetupMonitorAudioSource();
+
         if (timerText != null)
         {
             timerText.text = "";
@@ -115,6 +129,10 @@ public class Task1ReadAloudController : MonoBehaviour
             else if (isRecording)
             {
                 StopRecordingAndSave();
+            }
+            else if (recordingFailed && !isStartingRecording)
+            {
+                StartRecording();
             }
             else if (recordingCompleted && finishedPanelShown && !hasProceededToNext)
             {
@@ -167,8 +185,17 @@ public class Task1ReadAloudController : MonoBehaviour
 
     private void StartRecording()
     {
-        if (isRecording)
+        if (isRecording || isStartingRecording)
             return;
+
+        StartCoroutine(StartRecordingRoutine());
+    }
+
+    private IEnumerator StartRecordingRoutine()
+    {
+        isStartingRecording = true;
+        recordingFailed = false;
+        recordingCompleted = false;
 
         // Refresh participant id from global state before saving files
         if (GameFlowManager.Instance != null && !string.IsNullOrEmpty(GameFlowManager.Instance.participantId))
@@ -176,33 +203,195 @@ public class Task1ReadAloudController : MonoBehaviour
             participantId = GameFlowManager.Instance.participantId;
         }
 
+#if UNITY_ANDROID && !UNITY_EDITOR
+        const string androidMicPermission = "android.permission.RECORD_AUDIO";
+        if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(androidMicPermission))
+        {
+            Debug.Log("VoiceSample mic status: requesting Android RECORD_AUDIO permission.");
+            UnityEngine.Android.Permission.RequestUserPermission(androidMicPermission);
+
+            float permissionWait = 0f;
+            while (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(androidMicPermission) && permissionWait < microphoneReadyTimeout)
+            {
+                permissionWait += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(androidMicPermission))
+            {
+                FailRecordingStart("Android microphone permission denied or timed out.");
+                yield break;
+            }
+        }
+#endif
+
         // Choose microphone: prefer HMD mic if present, otherwise default system mic
         if (string.IsNullOrEmpty(microphoneDevice))
         {
             microphoneDevice = PickBestMicrophone();
+#if UNITY_ANDROID && !UNITY_EDITOR
             if (string.IsNullOrEmpty(microphoneDevice))
             {
-                Debug.LogError("No microphone devices found.");
-                return;
+                microphoneDevice = null; // Android/Quest can use the platform default mic even when devices is empty.
             }
+#else
+            if (string.IsNullOrEmpty(microphoneDevice))
+            {
+                FailRecordingStart("No microphone devices found.");
+                yield break;
+            }
+#endif
+        }
+
+        string deviceLabel = string.IsNullOrEmpty(microphoneDevice) ? "<default>" : microphoneDevice;
+        Debug.Log($"VoiceSample mic status: starting. device='{deviceLabel}', sampleRate={sampleRate}, maxRecordDuration={maxRecordDuration}s");
+        if (timerText != null)
+        {
+            timerText.text = "Starting microphone...";
         }
 
         recordingClip = Microphone.Start(microphoneDevice, false, Mathf.CeilToInt(maxRecordDuration), sampleRate);
+        if (recordingClip == null)
+        {
+            FailRecordingStart($"Microphone.Start returned null. device='{deviceLabel}'");
+            yield break;
+        }
+
+        int position = 0;
+        float readyWait = 0f;
+        while (position <= 0 && readyWait < microphoneReadyTimeout)
+        {
+            try
+            {
+                position = Microphone.GetPosition(microphoneDevice);
+            }
+            catch (Exception e)
+            {
+                FailRecordingStart($"Microphone.GetPosition failed during startup. device='{deviceLabel}', error={e.Message}");
+                yield break;
+            }
+
+            if (position > 0)
+                break;
+
+            readyWait += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        if (position <= 0)
+        {
+            FailRecordingStart($"Microphone did not become ready within {microphoneReadyTimeout:F1}s. device='{deviceLabel}', isRecording={IsMicrophoneRecordingSafe(microphoneDevice)}");
+            yield break;
+        }
+
         recordingStartTime = Time.time;
         isRecording = true;
+        isStartingRecording = false;
 
         if (timerText != null)
         {
             timerText.text = "Recording...";
         }
 
-        GameFlowManager.Instance?.LogEvent("voice_sample_recording_started", $"mic={microphoneDevice}", "voiceSample");
+        StartMicMonitoring(recordingClip, deviceLabel);
+        Debug.Log($"VoiceSample mic status: ready. device='{deviceLabel}', initialPosition={position}, channels={recordingClip.channels}, frequency={recordingClip.frequency}");
+        GameFlowManager.Instance?.LogEvent("voice_sample_recording_started", $"mic={deviceLabel}; initial_position={position}; channels={recordingClip.channels}; frequency={recordingClip.frequency}", "voiceSample");
+    }
+
+    private void FailRecordingStart(string reason)
+    {
+        isRecording = false;
+        isStartingRecording = false;
+        recordingFailed = true;
+        recordingCompleted = false;
+
+        StopMicMonitoring();
+        try
+        {
+            Microphone.End(microphoneDevice);
+        }
+        catch { }
+
+        recordingClip = null;
+
+        if (timerText != null)
+        {
+            timerText.text = "Microphone failed. Press space to retry.";
+        }
+
+        if (progressBar != null)
+        {
+            progressBar.value = 0f;
+        }
+
+        Debug.LogError($"VoiceSample mic status: start failed. {reason}");
+        GameFlowManager.Instance?.LogEvent("voice_sample_recording_failed", reason, "voiceSample");
+    }
+
+    private void FailRecordingSave(string reason)
+    {
+        StopMicMonitoring();
+        recordingFailed = true;
+        recordingCompleted = false;
+        recordingClip = null;
+
+        if (timerText != null)
+        {
+            timerText.text = "Recording failed or was silent. Press space to retry.";
+        }
+
+        if (progressBar != null)
+        {
+            progressBar.value = 0f;
+        }
+
+        Debug.LogError($"VoiceSample mic status: save rejected. {reason}");
+        GameFlowManager.Instance?.LogEvent("voice_sample_recording_rejected", reason, "voiceSample");
+    }
+
+    private static void GetSignalStats(float[] samples, out float peak, out float rms)
+    {
+        peak = 0f;
+        rms = 0f;
+
+        if (samples == null || samples.Length == 0)
+            return;
+
+        double sumSquares = 0.0;
+        for (int i = 0; i < samples.Length; i++)
+        {
+            float abs = Mathf.Abs(samples[i]);
+            if (abs > peak)
+                peak = abs;
+
+            sumSquares += samples[i] * samples[i];
+        }
+
+        rms = Mathf.Sqrt((float)(sumSquares / samples.Length));
+    }
+
+    private static bool IsMicrophoneRecordingSafe(string deviceName)
+    {
+        try
+        {
+            return Microphone.IsRecording(deviceName);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private string PickBestMicrophone()
     {
         var devices = Microphone.devices;
-        if (devices == null || devices.Length == 0) return "";
+        if (devices == null || devices.Length == 0)
+        {
+            Debug.LogWarning("VoiceSample mic devices: none found.");
+            return "";
+        }
+
+        Debug.Log($"VoiceSample mic devices: {string.Join(", ", devices)}");
 
         // Simple heuristic: look for HMD/VR keywords first
         foreach (var dev in devices)
@@ -218,6 +407,55 @@ public class Task1ReadAloudController : MonoBehaviour
         // Fallback to the first available device
         Debug.Log($"Using default microphone: {devices[0]}");
         return devices[0];
+    }
+
+    private void SetupMonitorAudioSource()
+    {
+        if (!monitorPlayback)
+            return;
+
+        if (monitorAudioSource == null)
+            monitorAudioSource = GetComponent<AudioSource>();
+
+        if (monitorAudioSource == null)
+            monitorAudioSource = gameObject.AddComponent<AudioSource>();
+
+        monitorAudioSource.playOnAwake = false;
+        monitorAudioSource.loop = true;
+        monitorAudioSource.volume = monitorVolume;
+        monitorAudioSource.mute = false;
+    }
+
+    private void StartMicMonitoring(AudioClip clip, string deviceLabel)
+    {
+        if (!monitorPlayback || clip == null)
+            return;
+
+        SetupMonitorAudioSource();
+        if (monitorAudioSource == null)
+        {
+            Debug.LogWarning($"VoiceSample mic monitor: no AudioSource available. device='{deviceLabel}'");
+            return;
+        }
+
+        monitorAudioSource.Stop();
+        monitorAudioSource.clip = clip;
+        monitorAudioSource.loop = true;
+        monitorAudioSource.volume = monitorVolume;
+        monitorAudioSource.Play();
+        Debug.Log($"VoiceSample mic monitor: started. device='{deviceLabel}', volume={monitorVolume:F2}");
+    }
+
+    private void StopMicMonitoring()
+    {
+        if (monitorAudioSource == null)
+            return;
+
+        if (monitorAudioSource.isPlaying)
+            monitorAudioSource.Stop();
+
+        monitorAudioSource.clip = null;
+        Debug.Log("VoiceSample mic monitor: stopped.");
     }
 
     private void UpdateRecordingUI()
@@ -255,19 +493,53 @@ public class Task1ReadAloudController : MonoBehaviour
             return;
 
         isRecording = false;
+        string deviceLabel = string.IsNullOrEmpty(microphoneDevice) ? "<default>" : microphoneDevice;
+        StopMicMonitoring();
 
-        int position = Microphone.GetPosition(microphoneDevice);
+        int position = 0;
+        bool micWasRecording = false;
+        try
+        {
+            position = Microphone.GetPosition(microphoneDevice);
+            micWasRecording = Microphone.IsRecording(microphoneDevice);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"VoiceSample mic status: failed to read stop position. device='{deviceLabel}', error={e.Message}");
+        }
         Microphone.End(microphoneDevice);
 
         if (recordingClip == null)
         {
-            Debug.LogError("Recording clip is null.");
+            FailRecordingSave("Recording clip is null.");
+            return;
+        }
+
+        float elapsed = Time.time - recordingStartTime;
+        int minValidFrames = Mathf.CeilToInt(minValidRecordingSeconds * recordingClip.frequency);
+        if (position <= 0 && elapsed >= maxRecordDuration - 0.05f)
+        {
+            position = recordingClip.samples;
+            Debug.LogWarning($"VoiceSample mic status: stop position was 0 at duration limit; using full clip length. device='{deviceLabel}', frames={position}");
+        }
+
+        if (position < minValidFrames)
+        {
+            FailRecordingSave($"Recording too short or no samples captured. device='{deviceLabel}', position={position}, minFrames={minValidFrames}, elapsed={elapsed:F2}s, micWasRecording={micWasRecording}");
             return;
         }
 
         // Trim clip to actual length
         float[] samples = new float[position * recordingClip.channels];
         recordingClip.GetData(samples, 0);
+
+        GetSignalStats(samples, out float peak, out float rms);
+        Debug.Log($"VoiceSample mic status: captured. device='{deviceLabel}', frames={position}, seconds={(float)position / recordingClip.frequency:F2}, peak={peak:F6}, rms={rms:F6}, micWasRecording={micWasRecording}");
+        if (peak < silencePeakThreshold || rms < silenceRmsThreshold)
+        {
+            FailRecordingSave($"Recording appears silent. device='{deviceLabel}', peak={peak:F6}, rms={rms:F6}, peakThreshold={silencePeakThreshold:F6}, rmsThreshold={silenceRmsThreshold:F6}");
+            return;
+        }
 
         AudioClip trimmedClip = AudioClip.Create(
             "TrimmedRecording",
@@ -459,7 +731,8 @@ public class Task1ReadAloudController : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (isRecording)
+        StopMicMonitoring();
+        if (isRecording || isStartingRecording)
         {
             Microphone.End(microphoneDevice);
         }
