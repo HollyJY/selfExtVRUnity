@@ -260,15 +260,15 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 148162055}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.49224886, z: -0, w: 0.87045455}
-  m_LocalPosition: {x: 0.7333373, y: 0.4, z: 0.3493601}
-  m_LocalScale: {x: 1.8700007, y: 1.87, z: 1.8700007}
+  m_LocalRotation: {x: 0, y: 0.18763842, z: 0, w: 0.9822382}
+  m_LocalPosition: {x: 2.074, y: 0.4, z: 0.607}
+  m_LocalScale: {x: 1.8700006, y: 1.87, z: 1.8700006}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1175499840}
   - {fileID: 383995550}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 23.573, z: 0}
+  m_Father: {fileID: 1745558477}
+  m_LocalEulerAnglesHint: {x: 0, y: 21.63, z: 0}
 --- !u!114 &148162057
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1445,8 +1445,8 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_text: "Welcome to the Experiment. \nYou can try to move your arms, and see the
-    avatar follow your movement. \n\nPlease say something, if you can hear replay
-    of your own voice from the headset, press the NEXT button. "
+    avatar follow your movement. \n\nWhen you are ready, press the TRIGGER with right
+    index finger, we go to the next phase. "
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -3728,7 +3728,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1278226341
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3744,9 +3744,9 @@ RectTransform:
   - {fileID: 1625659064}
   m_Father: {fileID: 462069771}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 392, y: -1165}
   m_SizeDelta: {x: 684, y: 730}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1278226342
@@ -4744,16 +4744,17 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1745558472}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.3040663, z: 0, w: 0.9526509}
-  m_LocalPosition: {x: -1.108, y: 0, z: 1.44}
+  m_LocalRotation: {x: 0, y: 0.38990358, z: 0, w: 0.9208557}
+  m_LocalPosition: {x: -1.843, y: 0, z: 1.651}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 850753757}
   - {fileID: 406472513}
   - {fileID: 873946260}
+  - {fileID: 148162056}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 35.404, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 45.897, z: 0}
 --- !u!1 &1767677776
 GameObject:
   m_ObjectHideFlags: 0
@@ -6101,7 +6102,6 @@ SceneRoots:
   - {fileID: 289942991}
   - {fileID: 78580986}
   - {fileID: 1745558477}
-  - {fileID: 148162056}
   - {fileID: 1719017554}
   - {fileID: 657527756}
   - {fileID: 1315311118}
