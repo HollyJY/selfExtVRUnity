@@ -46,6 +46,7 @@ public class ConversationSequencerFourTurns : MonoBehaviour
 
     private void OnEnable()
     {
+        TraceSequencerStep("sequencer_on_enable", $"speakerA={DescribeObject(speakerA)}; speakerB={DescribeObject(speakerB)}; micB={DescribeObject(micB)}; xr={GetXrStatus()}");
         ResolveSpeakerAByDebaterGender();
         if (speakerA != null)
             speakerA.OnSpeechFinished.AddListener(OnAFinished);
@@ -73,6 +74,7 @@ public class ConversationSequencerFourTurns : MonoBehaviour
 
     private void Start()
     {
+        TraceSequencerStep("sequencer_start", $"autoStart={autoStart}; phase={phase}; xr={GetXrStatus()}");
         if (autoStart)
             StartCoroutine(BeginSequence());
     }
@@ -90,22 +92,35 @@ public class ConversationSequencerFourTurns : MonoBehaviour
 
     private void ResolveSpeakerAByDebaterGender()
     {
-        if (!autoSelectSpeakerA) return;
+        TraceSequencerStep("debater_resolve_begin", $"autoSelect={autoSelectSpeakerA}; currentSpeakerA={DescribeObject(speakerA)}");
+        if (!autoSelectSpeakerA)
+        {
+            TraceSequencerStep("debater_resolve_skipped", "autoSelectSpeakerA=false");
+            return;
+        }
 
         string gender = null;
         var gfm = GameFlowManager.Instance;
         if (gfm != null && gfm.debaterGender != Gender.None)
         {
             gender = gfm.debaterGender.ToString();
+            TraceSequencerStep("debater_gender_from_game_flow", $"gender={gender}");
         }
         else
         {
             var trials = FindObjectOfType<TrialsController>();
             if (trials != null && !string.IsNullOrWhiteSpace(trials.debaterGender))
+            {
                 gender = trials.debaterGender;
+                TraceSequencerStep("debater_gender_from_trials", $"gender={gender}");
+            }
         }
 
-        if (string.IsNullOrWhiteSpace(gender)) return;
+        if (string.IsNullOrWhiteSpace(gender))
+        {
+            TraceSequencerStep("debater_resolve_skipped", "gender is empty");
+            return;
+        }
 
         bool isFemale = string.Equals(gender, Gender.Female.ToString(), StringComparison.OrdinalIgnoreCase) ||
                         string.Equals(gender, "female", StringComparison.OrdinalIgnoreCase);
@@ -113,12 +128,17 @@ public class ConversationSequencerFourTurns : MonoBehaviour
                       string.Equals(gender, "male", StringComparison.OrdinalIgnoreCase);
 
         string targetName = isFemale ? femaleDebaterObjectName : isMale ? maleDebaterObjectName : null;
-        if (string.IsNullOrEmpty(targetName)) return;
+        if (string.IsNullOrEmpty(targetName))
+        {
+            TraceSequencerStep("debater_resolve_skipped", $"unsupported_gender={gender}");
+            return;
+        }
 
         var go = FindSceneObjectByName(targetName);
         if (go == null)
         {
             Debug.LogWarning($"Sequencer: debater '{targetName}' not found in scene.");
+            TraceSequencerStep("debater_resolve_failed", $"target={targetName}; reason=object_not_found");
             return;
         }
 
@@ -126,10 +146,12 @@ public class ConversationSequencerFourTurns : MonoBehaviour
         if (controller == null)
         {
             Debug.LogWarning($"Sequencer: AgentSpeechController missing on '{targetName}'.");
+            TraceSequencerStep("debater_resolve_failed", $"target={targetName}; object={DescribeObject(go)}; reason=AgentSpeechController_missing");
             return;
         }
 
         speakerA = controller;
+        TraceSequencerStep("debater_resolve_done", $"target={targetName}; object={DescribeObject(go)}; speakerA={DescribeObject(speakerA)}");
     }
 
     private static GameObject FindSceneObjectByName(string name)
@@ -149,12 +171,14 @@ public class ConversationSequencerFourTurns : MonoBehaviour
 
     public IEnumerator BeginSequence()
     {
+        TraceSequencerStep("sequence_begin_requested", $"phase={phase}; speakerA={DescribeObject(speakerA)}; speakerB={DescribeObject(speakerB)}; micB={DescribeObject(micB)}");
         ResolveSpeakerAByDebaterGender();
 
         // Safety checks
         if (speakerA == null || speakerB == null || micB == null)
         {
             Debug.LogError("Sequencer: please assign speakerA, speakerB, and micB.");
+            TraceSequencerStep("sequence_begin_failed", $"speakerA={DescribeObject(speakerA)}; speakerB={DescribeObject(speakerB)}; micB={DescribeObject(micB)}");
             yield break;
         }
         // Ensure controllers don't auto-play by themselves
@@ -166,24 +190,33 @@ public class ConversationSequencerFourTurns : MonoBehaviour
         // Kick off A1
         phase = Phase.A1;
         if (!string.IsNullOrEmpty(lineA1))
+        {
+            TraceSequencerStep("sequence_phase_a1_start", $"speakerA={DescribeObject(speakerA)}; lineA1={lineA1}");
             speakerA.PlayLine(lineA1);
+        }
         else
+        {
             Debug.LogWarning("Sequencer: lineA1 is empty.");
+            TraceSequencerStep("sequence_phase_a1_missing_line", "");
+        }
     }
 
     private void OnAFinished()
     {
         if (phase == Phase.A1)
         {
+            TraceSequencerStep("sequence_phase_a1_finished", $"next=B1; micB={DescribeObject(micB)}");
             // A1 finished → gap → B1 mic begin
             StartCoroutine(GapThen(() =>
             {
                 phase = Phase.B1;
+                TraceSequencerStep("sequence_phase_b1_start", $"micB={DescribeObject(micB)}");
                 micB.BeginMic();
             }));
         }
         else if (phase == Phase.A2)
         {
+            TraceSequencerStep("sequence_phase_a2_finished", "next=B2");
             // A2 finished → gap → B2
             StartCoroutine(GapThen(() =>
             {
@@ -196,6 +229,7 @@ public class ConversationSequencerFourTurns : MonoBehaviour
     {
         if (phase == Phase.B1)
         {
+            TraceSequencerStep("sequence_phase_b1_finished", $"next=A2; lineA2={lineA2}");
             // B1 finished (mic) → gap → A2
             StartCoroutine(GapThen(() =>
             {
@@ -213,6 +247,7 @@ public class ConversationSequencerFourTurns : MonoBehaviour
         if (phase == Phase.B1)
         {
             Debug.LogError("Sequencer: B1 microphone failed to start; ending sequence to avoid waiting forever.");
+            TraceSequencerStep("sequence_phase_b1_mic_failed", "phase set to Done");
             phase = Phase.Done;
         }
     }
@@ -223,6 +258,36 @@ public class ConversationSequencerFourTurns : MonoBehaviour
         {
             phase = Phase.Done;
             Debug.Log("Conversation (events) A1 → B1(mic) → A2 → B2 finished.");
+            TraceSequencerStep("sequence_done", "");
+        }
+    }
+
+    private void TraceSequencerStep(string evt, string detail = "")
+    {
+        string message = $"[SEQUENCE_STARTUP] {evt} detail={detail}";
+        Debug.Log(message);
+        GameFlowManager.Instance?.LogStartupStep(evt, detail, "sequence");
+    }
+
+    private static string DescribeObject(UnityEngine.Object obj)
+    {
+        if (obj == null) return "<null>";
+        return obj.name;
+    }
+
+    private static string GetXrStatus()
+    {
+        try
+        {
+            string loadedDevice = string.IsNullOrEmpty(XRSettings.loadedDeviceName) ? "<none>" : XRSettings.loadedDeviceName;
+            bool rightTouch = OVRInput.IsControllerConnected(OVRInput.Controller.RTouch);
+            bool leftTouch = OVRInput.IsControllerConnected(OVRInput.Controller.LTouch);
+            bool touch = OVRInput.IsControllerConnected(OVRInput.Controller.Touch);
+            return $"deviceActive={XRSettings.isDeviceActive}; loadedDevice={loadedDevice}; rightTouch={rightTouch}; leftTouch={leftTouch}; touch={touch}";
+        }
+        catch (Exception e)
+        {
+            return $"xr_status_error={e.Message}";
         }
     }
 

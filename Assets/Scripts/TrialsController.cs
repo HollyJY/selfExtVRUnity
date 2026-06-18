@@ -66,6 +66,7 @@ public class TrialsController : MonoBehaviour
     void Start()
     {
         t0 = Time.realtimeSinceStartup;
+        TraceTrialStartupStep("trials_start_begin", $"sequencer={DescribeObject(sequencer)}; sessionId={sessionId}; participantGender={participantGender}; talkerGender={talkerGender}; debaterGender={debaterGender}");
         SyncFromGameFlowManager();
         LoadTrialContext();
         ApplyParticipantAvatar();
@@ -79,11 +80,13 @@ public class TrialsController : MonoBehaviour
         // Auto-start without GUI confirmation
         if (string.IsNullOrEmpty(sessionId)) sessionId = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
         if (string.IsNullOrEmpty(participantGender)) participantGender = "unspecified";
+        TraceTrialStartupStep("trials_start_done", $"sessionId={sessionId}; participantGender={participantGender}; talkerGender={talkerGender}; debaterGender={debaterGender}; sequencer={DescribeObject(sequencer)}");
         StartCoroutine(CheckTtsHealthAndRun());
     }
 
     private void ApplyParticipantAvatar()
     {
+        TraceTrialStartupStep("trials_avatar_apply_begin", $"participantGender={participantGender}; male={DescribeObject(maleTalkerMirrored)}; female={DescribeObject(femaleTalkerMirrored)}");
         bool isFemale = string.Equals(participantGender, Gender.Female.ToString(), StringComparison.OrdinalIgnoreCase);
         bool isMale = string.Equals(participantGender, Gender.Male.ToString(), StringComparison.OrdinalIgnoreCase);
 
@@ -91,16 +94,23 @@ public class TrialsController : MonoBehaviour
         {
             if (femaleTalkerMirrored != null) femaleTalkerMirrored.SetActive(true);
             if (maleTalkerMirrored != null) maleTalkerMirrored.SetActive(false);
+            TraceTrialStartupStep("trials_avatar_apply_done", $"selected=female; male={DescribeObject(maleTalkerMirrored)}; female={DescribeObject(femaleTalkerMirrored)}");
         }
         else if (isMale)
         {
             if (maleTalkerMirrored != null) maleTalkerMirrored.SetActive(true);
             if (femaleTalkerMirrored != null) femaleTalkerMirrored.SetActive(false);
+            TraceTrialStartupStep("trials_avatar_apply_done", $"selected=male; male={DescribeObject(maleTalkerMirrored)}; female={DescribeObject(femaleTalkerMirrored)}");
+        }
+        else
+        {
+            TraceTrialStartupStep("trials_avatar_apply_skipped", $"unsupported_participantGender={participantGender}");
         }
     }
 
     private void ApplyDebaterAvatar()
     {
+        TraceTrialStartupStep("trials_debater_apply_begin", $"debaterGender={debaterGender}; male={DescribeObject(maleDebater)}; female={DescribeObject(femaleDebater)}");
         bool isFemale = string.Equals(debaterGender, Gender.Female.ToString(), StringComparison.OrdinalIgnoreCase);
         bool isMale = string.Equals(debaterGender, Gender.Male.ToString(), StringComparison.OrdinalIgnoreCase);
 
@@ -108,16 +118,23 @@ public class TrialsController : MonoBehaviour
         {
             if (femaleDebater != null) femaleDebater.SetActive(true);
             if (maleDebater != null) maleDebater.SetActive(false);
+            TraceTrialStartupStep("trials_debater_apply_done", $"selected=female; male={DescribeObject(maleDebater)}; female={DescribeObject(femaleDebater)}");
         }
         else if (isMale)
         {
             if (maleDebater != null) maleDebater.SetActive(true);
             if (femaleDebater != null) femaleDebater.SetActive(false);
+            TraceTrialStartupStep("trials_debater_apply_done", $"selected=male; male={DescribeObject(maleDebater)}; female={DescribeObject(femaleDebater)}");
+        }
+        else
+        {
+            TraceTrialStartupStep("trials_debater_apply_skipped", $"unsupported_debaterGender={debaterGender}");
         }
     }
 
     private void PrepareAndRun()
     {
+        TraceTrialStartupStep("trials_prepare_and_run", $"sessionId={sessionId}; sequencer={DescribeObject(sequencer)}; trialContextCount={trialContext.Count}");
         sessionReady = true;
         SetupLogging(); // best-effort local logging if GameFlowManager is missing
         StartCoroutine(RunExperiment());
@@ -132,6 +149,7 @@ public class TrialsController : MonoBehaviour
         foreach (var healthUrl in healthUrls)
         {
             Debug.Log($"TrialsController: Checking TTS service health at {healthUrl}");
+            TraceTrialStartupStep("tts_health_check_begin", healthUrl);
             using (UnityWebRequest req = UnityWebRequest.Get(healthUrl))
             {
                 req.timeout = 5; // seconds
@@ -141,12 +159,14 @@ public class TrialsController : MonoBehaviour
                 {
                     healthy = true;
                     Debug.Log($"TrialsController: TTS service healthy via {healthUrl}");
+                    TraceTrialStartupStep("tts_health_check_ok", healthUrl);
                     break;
                 }
                 else
                 {
                     lastError = req.error;
                     Debug.LogWarning($"TrialsController: TTS health check failed at {healthUrl}. Error: {req.error}");
+                    TraceTrialStartupStep("tts_health_check_failed", $"url={healthUrl}; error={req.error}");
                 }
             }
         }
@@ -154,6 +174,7 @@ public class TrialsController : MonoBehaviour
         if (!healthy)
         {
             Debug.LogError($"TrialsController: All TTS health checks failed. Last error: {lastError}");
+            TraceTrialStartupStep("tts_health_all_failed", lastError);
             yield break;
         }
 
@@ -488,6 +509,7 @@ public class TrialsController : MonoBehaviour
     private void SyncFromGameFlowManager()
     {
         var gfm = GameFlowManager.Instance;
+        TraceTrialStartupStep("trials_sync_from_game_flow_begin", $"hasGameFlow={gfm != null}; sessionId={sessionId}; participantGender={participantGender}; talkerGender={talkerGender}; debaterGender={debaterGender}");
         if (gfm != null)
         {
             // Pull values from global manager
@@ -502,6 +524,24 @@ public class TrialsController : MonoBehaviour
         if (string.IsNullOrWhiteSpace(participantGender)) participantGender = Gender.Male.ToString();
         if (string.IsNullOrWhiteSpace(talkerGender)) talkerGender = Gender.Male.ToString();
         if (string.IsNullOrWhiteSpace(debaterGender)) debaterGender = Gender.Male.ToString();
+        TraceTrialStartupStep("trials_sync_from_game_flow_done", $"sessionId={sessionId}; participantGender={participantGender}; talkerGender={talkerGender}; debaterGender={debaterGender}");
+    }
+
+    private void TraceTrialStartupStep(string evt, string detail = "")
+    {
+        string message = $"[TRIAL_STARTUP] {evt} detail={detail}";
+        Debug.Log(message);
+        GameFlowManager.Instance?.LogStartupStep(evt, detail, "trials");
+    }
+
+    private static string DescribeObject(UnityEngine.Object obj)
+    {
+        if (obj == null) return "<null>";
+        if (obj is GameObject go)
+        {
+            return $"{go.name}(activeSelf={go.activeSelf}, activeInHierarchy={go.activeInHierarchy}, scene={go.scene.name})";
+        }
+        return obj.name;
     }
 
     private void LoadTrialContext()

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.XR;
 
 public enum Gender
 {
@@ -65,11 +66,13 @@ public class GameFlowManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
         t0 = Time.realtimeSinceStartup;
+        TraceStartupStep("game_flow_awake", $"scene={SceneManager.GetActiveScene().name}; xr={GetXrStatus()}");
     }
 
     private void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
+        TraceStartupStep("game_flow_enabled", $"scene={SceneManager.GetActiveScene().name}; xr={GetXrStatus()}");
     }
 
     private void OnDisable()
@@ -82,6 +85,7 @@ public class GameFlowManager : MonoBehaviour
     /// </summary>
     public void SetParticipantInfo(string id, Gender pGender, Gender tGender)
     {
+        TraceStartupStep("participant_info_begin", $"id={id}; participant_gender={pGender}; talker_gender={tGender}; debater_gender={debaterGender}");
         participantId = id;
         participantGender = pGender;
         talkerGender = tGender;
@@ -92,6 +96,7 @@ public class GameFlowManager : MonoBehaviour
 
     public void SetParticipantInfoWithDebater(string id, Gender pGender, Gender tGender, Gender dGender)
     {
+        TraceStartupStep("participant_info_begin", $"id={id}; participant_gender={pGender}; talker_gender={tGender}; debater_gender={dGender}");
         participantId = id;
         participantGender = pGender;
         talkerGender = tGender;
@@ -132,6 +137,7 @@ public class GameFlowManager : MonoBehaviour
         }
 
         voiceSampleReadyToProceed = false;
+        TraceStartupStep("load_scene_requested", $"target={voiceSampleSceneName}; from={SceneManager.GetActiveScene().name}; xr={GetXrStatus()}");
         Log("go_to_voice_sample_scene");
         SceneManager.LoadSceneAsync(voiceSampleSceneName, LoadSceneMode.Single);
     }
@@ -151,6 +157,7 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
 
+        TraceStartupStep("load_scene_requested", $"target={interactionSceneName}; from={activeScene}; xr={GetXrStatus()}");
         Log("go_to_interaction_scene");
         SceneManager.LoadSceneAsync(interactionSceneName, LoadSceneMode.Single);
     }
@@ -170,6 +177,11 @@ public class GameFlowManager : MonoBehaviour
     public void LogEvent(string evt, string detail = "", string phase = "", string trial = "")
     {
         Log(evt, detail, phase, trial);
+    }
+
+    public void LogStartupStep(string evt, string detail = "", string phase = "", string trial = "")
+    {
+        TraceStartupStep(evt, detail, phase, trial);
     }
 
     public float GetRealtimeSinceSessionStart()
@@ -242,6 +254,16 @@ public class GameFlowManager : MonoBehaviour
 #endif
     }
 
+    private void TraceStartupStep(string evt, string detail = "", string phase = "startup", string trial = "")
+    {
+        string message = $"[STARTUP] {evt} detail={detail}";
+        Debug.Log(message);
+        if (logReady)
+        {
+            Log(evt, detail, phase, trial);
+        }
+    }
+
     private static string Escape(string s)
     {
         if (string.IsNullOrEmpty(s)) return "";
@@ -252,10 +274,12 @@ public class GameFlowManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        TraceStartupStep("scene_loaded", $"scene={scene.name}; mode={mode}; xr={GetXrStatus()}");
         Log("scene_loaded", scene.name);
         if (scene.name == voiceSampleSceneName)
         {
             voiceSampleReadyToProceed = false;
+            TraceStartupStep("voice_sample_gate_reset", "ready=false");
         }
         ApplyParticipantAvatar();
     }
@@ -273,24 +297,36 @@ public class GameFlowManager : MonoBehaviour
 
     private void ApplyParticipantAvatar()
     {
-        if (participantGender == Gender.None) return;
+        TraceStartupStep("avatar_apply_begin", $"participant_gender={participantGender}; male_name={maleTalkerMirroredName}; female_name={femaleTalkerMirroredName}");
+        if (participantGender == Gender.None)
+        {
+            TraceStartupStep("avatar_apply_skipped", "participant_gender=None");
+            return;
+        }
 
         bool isFemale = participantGender == Gender.Female;
         bool isMale = participantGender == Gender.Male;
-        if (!isFemale && !isMale) return;
+        if (!isFemale && !isMale)
+        {
+            TraceStartupStep("avatar_apply_skipped", $"unsupported_participant_gender={participantGender}");
+            return;
+        }
 
         GameObject male = FindAvatarByName(maleTalkerMirroredName);
         GameObject female = FindAvatarByName(femaleTalkerMirroredName);
+        TraceStartupStep("avatar_lookup_result", $"male={DescribeObject(male)}; female={DescribeObject(female)}");
 
         if (isFemale)
         {
             if (female != null) female.SetActive(true);
             if (male != null) male.SetActive(false);
+            TraceStartupStep("avatar_apply_done", $"selected=female; male={DescribeObject(male)}; female={DescribeObject(female)}");
         }
         else if (isMale)
         {
             if (male != null) male.SetActive(true);
             if (female != null) female.SetActive(false);
+            TraceStartupStep("avatar_apply_done", $"selected=male; male={DescribeObject(male)}; female={DescribeObject(female)}");
         }
     }
 
@@ -309,5 +345,27 @@ public class GameFlowManager : MonoBehaviour
         }
 
         return null;
+    }
+
+    private static string DescribeObject(GameObject obj)
+    {
+        if (obj == null) return "<null>";
+        return $"{obj.name}(activeSelf={obj.activeSelf}, activeInHierarchy={obj.activeInHierarchy}, scene={obj.scene.name})";
+    }
+
+    private static string GetXrStatus()
+    {
+        try
+        {
+            string loadedDevice = string.IsNullOrEmpty(XRSettings.loadedDeviceName) ? "<none>" : XRSettings.loadedDeviceName;
+            bool rightTouch = OVRInput.IsControllerConnected(OVRInput.Controller.RTouch);
+            bool leftTouch = OVRInput.IsControllerConnected(OVRInput.Controller.LTouch);
+            bool touch = OVRInput.IsControllerConnected(OVRInput.Controller.Touch);
+            return $"deviceActive={XRSettings.isDeviceActive}; loadedDevice={loadedDevice}; rightTouch={rightTouch}; leftTouch={leftTouch}; touch={touch}";
+        }
+        catch (Exception e)
+        {
+            return $"xr_status_error={e.Message}";
+        }
     }
 }

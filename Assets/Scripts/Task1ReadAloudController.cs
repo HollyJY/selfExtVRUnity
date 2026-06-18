@@ -196,18 +196,22 @@ public class Task1ReadAloudController : MonoBehaviour
         isStartingRecording = true;
         recordingFailed = false;
         recordingCompleted = false;
+        TraceVoiceSampleMicStep("voice_sample_mic_flow_begin", $"participantId={participantId}; configuredDevice={microphoneDevice}; devices={GetMicrophoneDevicesForLog()}; sampleRate={sampleRate}; maxDuration={maxRecordDuration}");
 
         // Refresh participant id from global state before saving files
         if (GameFlowManager.Instance != null && !string.IsNullOrEmpty(GameFlowManager.Instance.participantId))
         {
             participantId = GameFlowManager.Instance.participantId;
+            TraceVoiceSampleMicStep("voice_sample_participant_synced", $"participantId={participantId}");
         }
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         const string androidMicPermission = "android.permission.RECORD_AUDIO";
+        TraceVoiceSampleMicStep("voice_sample_permission_check", $"permission={UnityEngine.Android.Permission.HasUserAuthorizedPermission(androidMicPermission)}");
         if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(androidMicPermission))
         {
             Debug.Log("VoiceSample mic status: requesting Android RECORD_AUDIO permission.");
+            TraceVoiceSampleMicStep("voice_sample_permission_request", androidMicPermission);
             UnityEngine.Android.Permission.RequestUserPermission(androidMicPermission);
 
             float permissionWait = 0f;
@@ -219,6 +223,7 @@ public class Task1ReadAloudController : MonoBehaviour
 
             if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(androidMicPermission))
             {
+                TraceVoiceSampleMicStep("voice_sample_permission_denied", $"waited={permissionWait:F2}s");
                 FailRecordingStart("Android microphone permission denied or timed out.");
                 yield break;
             }
@@ -228,11 +233,14 @@ public class Task1ReadAloudController : MonoBehaviour
         // Choose microphone: prefer HMD mic if present, otherwise default system mic
         if (string.IsNullOrEmpty(microphoneDevice))
         {
+            TraceVoiceSampleMicStep("voice_sample_device_select_begin", $"devices={GetMicrophoneDevicesForLog()}");
             microphoneDevice = PickBestMicrophone();
+            TraceVoiceSampleMicStep("voice_sample_device_selected_raw", string.IsNullOrEmpty(microphoneDevice) ? "<empty>" : microphoneDevice);
 #if UNITY_ANDROID && !UNITY_EDITOR
             if (string.IsNullOrEmpty(microphoneDevice))
             {
                 microphoneDevice = null; // Android/Quest can use the platform default mic even when devices is empty.
+                TraceVoiceSampleMicStep("voice_sample_device_android_default", "using platform default mic");
             }
 #else
             if (string.IsNullOrEmpty(microphoneDevice))
@@ -250,15 +258,18 @@ public class Task1ReadAloudController : MonoBehaviour
             timerText.text = "Starting microphone...";
         }
 
+        TraceVoiceSampleMicStep("voice_sample_microphone_start_call", $"device={deviceLabel}; duration={Mathf.CeilToInt(maxRecordDuration)}; sampleRate={sampleRate}");
         recordingClip = Microphone.Start(microphoneDevice, false, Mathf.CeilToInt(maxRecordDuration), sampleRate);
         if (recordingClip == null)
         {
             FailRecordingStart($"Microphone.Start returned null. device='{deviceLabel}'");
             yield break;
         }
+        TraceVoiceSampleMicStep("voice_sample_microphone_clip_created", $"clip={recordingClip.name}; channels={recordingClip.channels}; frequency={recordingClip.frequency}; samples={recordingClip.samples}");
 
         int position = 0;
         float readyWait = 0f;
+        float nextWaitLog = 0f;
         while (position <= 0 && readyWait < microphoneReadyTimeout)
         {
             try
@@ -273,6 +284,12 @@ public class Task1ReadAloudController : MonoBehaviour
 
             if (position > 0)
                 break;
+
+            if (readyWait >= nextWaitLog)
+            {
+                TraceVoiceSampleMicStep("voice_sample_waiting_for_position", $"wait={readyWait:F2}s; timeout={microphoneReadyTimeout:F2}s; isRecording={IsMicrophoneRecordingSafe(microphoneDevice)}");
+                nextWaitLog += 1f;
+            }
 
             readyWait += Time.unscaledDeltaTime;
             yield return null;
@@ -295,11 +312,13 @@ public class Task1ReadAloudController : MonoBehaviour
 
         StartMicMonitoring(recordingClip, deviceLabel);
         Debug.Log($"VoiceSample mic status: ready. device='{deviceLabel}', initialPosition={position}, channels={recordingClip.channels}, frequency={recordingClip.frequency}");
+        TraceVoiceSampleMicStep("voice_sample_mic_ready", $"device={deviceLabel}; initialPosition={position}; channels={recordingClip.channels}; frequency={recordingClip.frequency}");
         GameFlowManager.Instance?.LogEvent("voice_sample_recording_started", $"mic={deviceLabel}; initial_position={position}; channels={recordingClip.channels}; frequency={recordingClip.frequency}", "voiceSample");
     }
 
     private void FailRecordingStart(string reason)
     {
+        TraceVoiceSampleMicStep("voice_sample_mic_start_failed", reason);
         isRecording = false;
         isStartingRecording = false;
         recordingFailed = true;
@@ -407,6 +426,20 @@ public class Task1ReadAloudController : MonoBehaviour
         // Fallback to the first available device
         Debug.Log($"Using default microphone: {devices[0]}");
         return devices[0];
+    }
+
+    private void TraceVoiceSampleMicStep(string evt, string detail = "")
+    {
+        string message = $"[VOICE_SAMPLE_MIC_STARTUP] {evt} detail={detail}";
+        Debug.Log(message);
+        GameFlowManager.Instance?.LogStartupStep(evt, detail, "voiceSampleMic");
+    }
+
+    private static string GetMicrophoneDevicesForLog()
+    {
+        var devices = Microphone.devices;
+        if (devices == null || devices.Length == 0) return "<none>";
+        return string.Join("|", devices);
     }
 
     private void SetupMonitorAudioSource()

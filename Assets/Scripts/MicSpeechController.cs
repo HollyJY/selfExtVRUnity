@@ -51,6 +51,7 @@ public class MicSpeechController : MonoBehaviour
     {
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
         if (animator == null) animator = GetComponentInParent<Animator>();
+        TraceMicStep("mic_awake", $"audioSource={DescribeObject(audioSource)}; animator={DescribeObject(animator)}; saveRelativePath={saveRelativePath}");
     }
 
     void Reset()
@@ -66,23 +67,36 @@ public class MicSpeechController : MonoBehaviour
 
     public void BeginMic()
     {
-        if (IsMicActive) return;
+        TraceMicStep("mic_begin_requested", $"isActive={IsMicActive}; overrideDevice={overrideDeviceName}; sampleRate={sampleRate}; lengthSec={lengthSec}; monitorPlayback={monitorPlayback}");
+        if (IsMicActive)
+        {
+            TraceMicStep("mic_begin_ignored", "already active");
+            return;
+        }
         StartCoroutine(BeginMicFlow());
     }
 
     public void EndMic()
     {
-        if (!IsMicActive) return;
+        TraceMicStep("mic_end_requested", $"isActive={IsMicActive}; currentDevice={CurrentDeviceName ?? "<default>"}");
+        if (!IsMicActive)
+        {
+            TraceMicStep("mic_end_ignored", "not active");
+            return;
+        }
         StopMicInternal();
     }
 
     private IEnumerator BeginMicFlow()
     {
+        TraceMicStep("mic_flow_begin", $"devices={GetMicrophoneDevicesForLog()}");
         // 1) Android/Quest: request runtime permission
 #if UNITY_ANDROID && !UNITY_EDITOR
         const string ANDROID_MIC_PERM = "android.permission.RECORD_AUDIO";
+        TraceMicStep("mic_permission_check", $"permission={UnityEngine.Android.Permission.HasUserAuthorizedPermission(ANDROID_MIC_PERM)}");
         if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(ANDROID_MIC_PERM))
         {
+            TraceMicStep("mic_permission_request", ANDROID_MIC_PERM);
             UnityEngine.Android.Permission.RequestUserPermission(ANDROID_MIC_PERM);
             float t = 0f;
             const float timeout = 5f;
@@ -94,6 +108,7 @@ public class MicSpeechController : MonoBehaviour
             if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(ANDROID_MIC_PERM))
             {
                 Debug.LogError("Mic permission denied on Android.");
+                TraceMicStep("mic_permission_denied", $"waited={t:F2}s");
                 OnMicPermissionDenied?.Invoke();
                 yield break;
             }
@@ -101,8 +116,10 @@ public class MicSpeechController : MonoBehaviour
 #endif
 
         // 2) Choose device
+        TraceMicStep("mic_device_select_begin", $"overrideDevice={overrideDeviceName}; hmdKeywords={hmdKeywords}; devices={GetMicrophoneDevicesForLog()}");
         string device = ChooseBestMicDevice();
         CurrentDeviceName = device; // may be null => use default device
+        TraceMicStep("mic_device_selected", $"device={device ?? "<default>"}");
 
         // 3) Start microphone
         if (audioSource == null)
@@ -113,6 +130,7 @@ public class MicSpeechController : MonoBehaviour
 
         audioSource.loop = monitorPlayback;
         lastSamples = null; lastChannels = 0; lastFrequency = 0; lastFrameCount = 0;
+        TraceMicStep("mic_start_call", $"device={device ?? "<default>"}; loop={loop}; lengthSec={lengthSec}; sampleRate={sampleRate}");
         audioSource.clip = Microphone.Start(device, loop, lengthSec, sampleRate);
         recordingElapsed = 0f;
         if (audioSource.clip == null)
@@ -120,9 +138,11 @@ public class MicSpeechController : MonoBehaviour
             FailMicStart($"Microphone.Start returned null. Device='{device ?? "<default>"}'");
             yield break;
         }
+        TraceMicStep("mic_clip_created", $"clip={audioSource.clip.name}; channels={audioSource.clip.channels}; frequency={audioSource.clip.frequency}; samples={audioSource.clip.samples}");
         // Wait until the recording position is set
         int pos = 0;
         float readyWait = 0f;
+        float nextWaitLog = 0f;
         while (pos <= 0 && readyWait < microphoneReadyTimeout)
         {
             try
@@ -137,6 +157,12 @@ public class MicSpeechController : MonoBehaviour
 
             if (pos > 0) break;
 
+            if (readyWait >= nextWaitLog)
+            {
+                TraceMicStep("mic_waiting_for_position", $"wait={readyWait:F2}s; timeout={microphoneReadyTimeout:F2}s; isRecording={IsMicrophoneRecordingSafe(device)}");
+                nextWaitLog += 1f;
+            }
+
             readyWait += Time.unscaledDeltaTime;
             yield return null;
         }
@@ -149,11 +175,15 @@ public class MicSpeechController : MonoBehaviour
 
         // 4) Start monitoring playback if desired
         if (monitorPlayback)
+        {
+            TraceMicStep("mic_monitor_playback_start", $"audioSource={DescribeObject(audioSource)}");
             audioSource.Play();
+        }
 
         // 5) Update state + events + animator
         IsMicActive = true;
         if (animator != null) animator.SetBool(talkBoolName, true);
+        TraceMicStep("mic_started", $"device={device ?? "<default>"}; initialPosition={pos}; animator={DescribeObject(animator)}; talkBool={talkBoolName}");
         OnMicStarted?.Invoke();
 
         // 6) Safety timer
@@ -168,12 +198,14 @@ public class MicSpeechController : MonoBehaviour
         if (IsMicActive)
         {
             // timed out
+            TraceMicStep("mic_max_duration_reached", $"maxSpeakSeconds={maxSpeakSeconds}");
             StopMicInternal();
         }
     }
 
     private void FailMicStart(string reason)
     {
+        TraceMicStep("mic_start_failed", reason);
         if (audioSource != null)
         {
             if (audioSource.isPlaying) audioSource.Stop();
@@ -206,6 +238,7 @@ public class MicSpeechController : MonoBehaviour
 
     private void StopMicInternal()
     {
+        TraceMicStep("mic_stop_begin", $"device={CurrentDeviceName ?? "<default>"}; saveOnFinish={saveOnFinish}; saveRelativePath={saveRelativePath}; elapsed={recordingElapsed:F2}s");
         // animator off
         if (animator != null) animator.SetBool(talkBoolName, false);
 
@@ -233,6 +266,7 @@ public class MicSpeechController : MonoBehaviour
             SaveLastRecording(saveRelativePath);
         }
 
+        TraceMicStep("mic_stop_done", $"device={CurrentDeviceName ?? "<default>"}; frames={lastFrameCount}; channels={lastChannels}; frequency={lastFrequency}");
         OnMicFinished?.Invoke();
     }
 
@@ -240,14 +274,21 @@ public class MicSpeechController : MonoBehaviour
     {
         // On Android standalone builds, Unity typically ignores Microphone.devices and uses default, so return null
 #if UNITY_ANDROID && !UNITY_EDITOR
+        TraceMicStep("mic_device_android_default", "Unity Android build: using platform default device");
         return null; // default HMD mic on Quest
 #else
         if (!string.IsNullOrEmpty(overrideDeviceName))
+        {
+            TraceMicStep("mic_device_override", overrideDeviceName);
             return overrideDeviceName;
+        }
 
         var devices = Microphone.devices;
         if (devices == null || devices.Length == 0)
+        {
+            TraceMicStep("mic_device_list_empty", "falling back to default device");
             return null; // fallback to default
+        }
 
         // try to find an HMD device by keyword
         var keys = (hmdKeywords ?? "").Split(',');
@@ -261,14 +302,36 @@ public class MicSpeechController : MonoBehaviour
                 if (name.ToLowerInvariant().Contains(k.ToLowerInvariant()))
                 {
                     Debug.Log($"MicSpeechController: selected HMD mic '{name}'");
+                    TraceMicStep("mic_device_hmd_match", $"device={name}; keyword={k}");
                     return name;
                 }
             }
         }
         // otherwise default device
         Debug.Log("MicSpeechController: no HMD mic found, using default mic");
+        TraceMicStep("mic_device_no_hmd_match", $"devices={GetMicrophoneDevicesForLog()}");
         return null;
 #endif
+    }
+
+    private void TraceMicStep(string evt, string detail = "")
+    {
+        string message = $"[MIC_STARTUP] {evt} detail={detail}";
+        Debug.Log(message);
+        GameFlowManager.Instance?.LogStartupStep(evt, detail, "mic");
+    }
+
+    private static string GetMicrophoneDevicesForLog()
+    {
+        var devices = Microphone.devices;
+        if (devices == null || devices.Length == 0) return "<none>";
+        return string.Join("|", devices);
+    }
+
+    private static string DescribeObject(UnityEngine.Object obj)
+    {
+        if (obj == null) return "<null>";
+        return obj.name;
     }
 
     /// <summary>
