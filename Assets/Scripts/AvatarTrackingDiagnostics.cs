@@ -84,6 +84,7 @@ public static class AvatarTrackingDiagnostics
             }
 
             AppendInterestingMembers(sb, component, type);
+            AppendMirrorTransformDetails(sb, component, type);
             sb.Append(")");
         }
 
@@ -222,7 +223,7 @@ public static class AvatarTrackingDiagnostics
 
     private static string GetOvrPluginStatus()
     {
-        Type pluginType = Type.GetType("OVRPlugin");
+        Type pluginType = FindTypeByName("OVRPlugin");
         if (pluginType == null) return "<OVRPlugin type not found>";
 
         var sb = new StringBuilder();
@@ -232,6 +233,90 @@ public static class AvatarTrackingDiagnostics
         AppendStaticMember(sb, pluginType, "systemHeadset");
         AppendStaticMember(sb, pluginType, "trackingOriginType");
         return sb.Length == 0 ? "<no readable OVRPlugin status>" : sb.ToString();
+    }
+
+    private static Type FindTypeByName(string typeName)
+    {
+        Type direct = Type.GetType(typeName);
+        if (direct != null) return direct;
+
+        Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
+        for (int i = 0; i < assemblies.Length; i++)
+        {
+            Type found = assemblies[i].GetType(typeName);
+            if (found != null) return found;
+        }
+
+        for (int i = 0; i < assemblies.Length; i++)
+        {
+            Type[] types;
+            try
+            {
+                types = assemblies[i].GetTypes();
+            }
+            catch
+            {
+                continue;
+            }
+
+            for (int j = 0; j < types.Length; j++)
+            {
+                if (types[j].Name == typeName) return types[j];
+            }
+        }
+
+        return null;
+    }
+
+    private static void AppendMirrorTransformDetails(StringBuilder sb, object instance, Type type)
+    {
+        if (type.Name.IndexOf("MirrorTransforms", StringComparison.OrdinalIgnoreCase) < 0) return;
+
+        Transform self = (instance as Component)?.transform;
+        Transform target = TryReadTransformMember(instance, type, "_target") ??
+                           TryReadTransformMember(instance, type, "target") ??
+                           TryReadTransformMember(instance, type, "Target");
+
+        if (self != null)
+        {
+            sb.Append(", selfPos=");
+            sb.Append(self.position);
+            sb.Append(", selfLocalPos=");
+            sb.Append(self.localPosition);
+        }
+
+        if (target != null)
+        {
+            sb.Append(", target=");
+            sb.Append(target.name);
+            sb.Append(", targetActive=");
+            sb.Append(target.gameObject.activeInHierarchy);
+            sb.Append(", targetPos=");
+            sb.Append(target.position);
+            sb.Append(", targetLocalPos=");
+            sb.Append(target.localPosition);
+        }
+        else
+        {
+            sb.Append(", target=<null>");
+        }
+    }
+
+    private static Transform TryReadTransformMember(object instance, Type type, string memberName)
+    {
+        FieldInfo field = type.GetField(memberName, InstanceFlags);
+        if (field != null && typeof(Transform).IsAssignableFrom(field.FieldType) && TryGetValue(() => field.GetValue(instance), out object fieldValue))
+        {
+            return fieldValue as Transform;
+        }
+
+        PropertyInfo property = type.GetProperty(memberName, InstanceFlags);
+        if (property != null && typeof(Transform).IsAssignableFrom(property.PropertyType) && TryGetValue(() => property.GetValue(instance), out object propertyValue))
+        {
+            return propertyValue as Transform;
+        }
+
+        return null;
     }
 
     private static void AppendStaticMember(StringBuilder sb, Type type, string memberName)

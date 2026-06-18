@@ -353,15 +353,18 @@ public class GameFlowManager : MonoBehaviour
 
     private IEnumerator LogTrackingStatusAfterSceneSettles(string sceneName)
     {
-        float[] delays = { 0.5f, 1.5f, 3f };
+        float[] delays = { 0.5f, 1.5f, 3f, 5f };
+        float elapsed = 0f;
         for (int i = 0; i < delays.Length; i++)
         {
-            yield return new WaitForSeconds(delays[i]);
+            float wait = Mathf.Max(0f, delays[i] - elapsed);
+            yield return new WaitForSeconds(wait);
+            elapsed = delays[i];
             GameObject male = FindAvatarByName(maleTalkerMirroredName);
             GameObject female = FindAvatarByName(femaleTalkerMirroredName);
             TraceStartupStep(
                 "tracking_status_delayed",
-                $"scene={sceneName}; delay={delays[i]:F1}s; {AvatarTrackingDiagnostics.DescribeGlobalTracking()}; male={AvatarTrackingDiagnostics.DescribeAvatarTracking(male)}; female={AvatarTrackingDiagnostics.DescribeAvatarTracking(female)}",
+                $"scene={sceneName}; elapsed={elapsed:F1}s; {AvatarTrackingDiagnostics.DescribeGlobalTracking()}; male={AvatarTrackingDiagnostics.DescribeAvatarTracking(male)}; female={AvatarTrackingDiagnostics.DescribeAvatarTracking(female)}",
                 "tracking");
         }
     }
