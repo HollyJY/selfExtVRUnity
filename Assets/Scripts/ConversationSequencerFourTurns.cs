@@ -52,7 +52,10 @@ public class ConversationSequencerFourTurns : MonoBehaviour
         if (speakerB != null)
             speakerB.OnSpeechFinished.AddListener(OnBFinished);
         if (micB != null)
+        {
             micB.OnMicFinished.AddListener(OnMicFinished);
+            micB.OnMicStartFailed.AddListener(OnMicStartFailed);
+        }
     }
 
     private void OnDisable()
@@ -62,7 +65,10 @@ public class ConversationSequencerFourTurns : MonoBehaviour
         if (speakerB != null)
             speakerB.OnSpeechFinished.RemoveListener(OnBFinished);
         if (micB != null)
+        {
             micB.OnMicFinished.RemoveListener(OnMicFinished);
+            micB.OnMicStartFailed.RemoveListener(OnMicStartFailed);
+        }
     }
 
     private void Start()
@@ -109,7 +115,7 @@ public class ConversationSequencerFourTurns : MonoBehaviour
         string targetName = isFemale ? femaleDebaterObjectName : isMale ? maleDebaterObjectName : null;
         if (string.IsNullOrEmpty(targetName)) return;
 
-        var go = GameObject.Find(targetName);
+        var go = FindSceneObjectByName(targetName);
         if (go == null)
         {
             Debug.LogWarning($"Sequencer: debater '{targetName}' not found in scene.");
@@ -126,8 +132,25 @@ public class ConversationSequencerFourTurns : MonoBehaviour
         speakerA = controller;
     }
 
+    private static GameObject FindSceneObjectByName(string name)
+    {
+        GameObject activeObject = GameObject.Find(name);
+        if (activeObject != null) return activeObject;
+
+        foreach (GameObject obj in Resources.FindObjectsOfTypeAll<GameObject>())
+        {
+            if (obj.name != name) continue;
+            if (!obj.scene.IsValid() || !obj.scene.isLoaded) continue;
+            return obj;
+        }
+
+        return null;
+    }
+
     public IEnumerator BeginSequence()
     {
+        ResolveSpeakerAByDebaterGender();
+
         // Safety checks
         if (speakerA == null || speakerB == null || micB == null)
         {
@@ -182,6 +205,15 @@ public class ConversationSequencerFourTurns : MonoBehaviour
                 else
                     Debug.LogWarning("Sequencer: lineA2 is empty.");
             }));
+        }
+    }
+
+    private void OnMicStartFailed()
+    {
+        if (phase == Phase.B1)
+        {
+            Debug.LogError("Sequencer: B1 microphone failed to start; ending sequence to avoid waiting forever.");
+            phase = Phase.Done;
         }
     }
 

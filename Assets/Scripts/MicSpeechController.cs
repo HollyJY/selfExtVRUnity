@@ -19,6 +19,7 @@ public class MicSpeechController : MonoBehaviour
     public int lengthSec = 10;                    // ring buffer length
     public bool loop = true;                      // ring buffer looping
     public bool monitorPlayback = true;           // if true, you hear the mic in headset/speakers
+    public float microphoneReadyTimeout = 5f;     // max time to wait for Unity to report mic samples
 
     [Header("Limits")]
     public float maxSpeakSeconds = 120f;          // safety cap for B1
@@ -27,6 +28,7 @@ public class MicSpeechController : MonoBehaviour
     public UnityEvent OnMicStarted;
     public UnityEvent OnMicFinished;
     public UnityEvent OnMicPermissionDenied;      // fired if Android mic permission is denied
+    public UnityEvent OnMicStartFailed = new UnityEvent();
 
     [Header("Saving")]
     public bool saveOnFinish = true;
@@ -44,6 +46,12 @@ public class MicSpeechController : MonoBehaviour
 
     public bool IsMicActive { get; private set; }
     public string CurrentDeviceName { get; private set; }
+
+    void Awake()
+    {
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
+        if (animator == null) animator = GetComponentInParent<Animator>();
+    }
 
     void Reset()
     {
@@ -97,21 +105,46 @@ public class MicSpeechController : MonoBehaviour
         CurrentDeviceName = device; // may be null => use default device
 
         // 3) Start microphone
+        if (audioSource == null)
+        {
+            FailMicStart("AudioSource is not assigned.");
+            yield break;
+        }
+
         audioSource.loop = monitorPlayback;
         lastSamples = null; lastChannels = 0; lastFrequency = 0; lastFrameCount = 0;
         audioSource.clip = Microphone.Start(device, loop, lengthSec, sampleRate);
         recordingElapsed = 0f;
         if (audioSource.clip == null)
         {
-            Debug.LogError($"Failed to start Microphone. Device='{device ?? "<default>"}'");
+            FailMicStart($"Microphone.Start returned null. Device='{device ?? "<default>"}'");
             yield break;
         }
         // Wait until the recording position is set
         int pos = 0;
-        while (pos <= 0)
+        float readyWait = 0f;
+        while (pos <= 0 && readyWait < microphoneReadyTimeout)
         {
-            pos = Microphone.GetPosition(device);
+            try
+            {
+                pos = Microphone.GetPosition(device);
+            }
+            catch (System.Exception e)
+            {
+                FailMicStart($"Microphone.GetPosition failed. Device='{device ?? "<default>"}', error={e.Message}");
+                yield break;
+            }
+
+            if (pos > 0) break;
+
+            readyWait += Time.unscaledDeltaTime;
             yield return null;
+        }
+
+        if (pos <= 0)
+        {
+            FailMicStart($"Microphone did not become ready within {microphoneReadyTimeout:F1}s. Device='{device ?? "<default>"}', isRecording={IsMicrophoneRecordingSafe(device)}");
+            yield break;
         }
 
         // 4) Start monitoring playback if desired
@@ -136,6 +169,38 @@ public class MicSpeechController : MonoBehaviour
         {
             // timed out
             StopMicInternal();
+        }
+    }
+
+    private void FailMicStart(string reason)
+    {
+        if (audioSource != null)
+        {
+            if (audioSource.isPlaying) audioSource.Stop();
+            audioSource.clip = null;
+        }
+
+        try
+        {
+            Microphone.End(CurrentDeviceName);
+        }
+        catch { }
+
+        IsMicActive = false;
+        if (animator != null) animator.SetBool(talkBoolName, false);
+        Debug.LogError($"MicSpeechController: start failed. {reason}");
+        OnMicStartFailed?.Invoke();
+    }
+
+    private static bool IsMicrophoneRecordingSafe(string deviceName)
+    {
+        try
+        {
+            return Microphone.IsRecording(deviceName);
+        }
+        catch
+        {
+            return false;
         }
     }
 

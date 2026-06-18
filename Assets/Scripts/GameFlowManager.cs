@@ -297,6 +297,17 @@ public class GameFlowManager : MonoBehaviour
     private static GameObject FindAvatarByName(string name)
     {
         if (string.IsNullOrWhiteSpace(name)) return null;
-        return GameObject.Find(name);
+
+        GameObject activeObject = GameObject.Find(name);
+        if (activeObject != null) return activeObject;
+
+        foreach (GameObject obj in Resources.FindObjectsOfTypeAll<GameObject>())
+        {
+            if (obj.name != name) continue;
+            if (!obj.scene.IsValid() || !obj.scene.isLoaded) continue;
+            return obj;
+        }
+
+        return null;
     }
 }

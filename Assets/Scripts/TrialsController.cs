@@ -384,12 +384,14 @@ public class TrialsController : MonoBehaviour
                 mic.OnMicStarted.AddListener(OnMicStarted);
                 mic.OnMicFinished.AddListener(OnMicFinished);
                 mic.OnMicPermissionDenied.AddListener(OnMicDenied);
+                mic.OnMicStartFailed.AddListener(OnMicStartFailed);
             }
             else
             {
                 mic.OnMicStarted.RemoveListener(OnMicStarted);
                 mic.OnMicFinished.RemoveListener(OnMicFinished);
                 mic.OnMicPermissionDenied.RemoveListener(OnMicDenied);
+                mic.OnMicStartFailed.RemoveListener(OnMicStartFailed);
             }
         }
     }
@@ -408,6 +410,7 @@ public class TrialsController : MonoBehaviour
         StartCoroutine(ProcessB2ForTrial(currentTrialIndex));
     }
     private void OnMicDenied() => Log("B_mic_permission_denied", "", "B1");
+    private void OnMicStartFailed() => Log("B_mic_start_failed", "", "B1");
 
     private void HookScaleEvents(bool on)
     {
