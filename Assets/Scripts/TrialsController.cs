@@ -38,6 +38,8 @@ public class TrialsController : MonoBehaviour
     [Header("Logging")]
     public bool writeCsvLog = true;
     public string logRelativePath = "Audio/<session>_session/<date>_<session>_log.csv";  // used only if GameFlowManager is missing
+    public bool waitForXrBeforeExperimentStart = true;
+    public float xrExperimentStartTimeoutSeconds = 8f;
 
     [Header("TTS")]
     [Tooltip("Endpoint for TTS POST JSON")]
@@ -84,7 +86,7 @@ public class TrialsController : MonoBehaviour
         if (string.IsNullOrEmpty(participantGender)) participantGender = "unspecified";
         TraceTrialStartupStep("trials_start_done", $"sessionId={sessionId}; participantGender={participantGender}; talkerGender={talkerGender}; debaterGender={debaterGender}; sequencer={DescribeObject(sequencer)}");
         TraceTrialStartupStep("tracking_trials_start", AvatarTrackingDiagnostics.DescribeGlobalTracking());
-        StartCoroutine(CheckTtsHealthAndRun());
+        StartCoroutine(StartExperimentWhenReady());
     }
 
     private void ApplyParticipantAvatar()
@@ -168,6 +170,29 @@ public class TrialsController : MonoBehaviour
         sessionReady = true;
         SetupLogging(); // best-effort local logging if GameFlowManager is missing
         StartCoroutine(RunExperiment());
+    }
+
+    private IEnumerator StartExperimentWhenReady()
+    {
+        if (waitForXrBeforeExperimentStart && GameFlowManager.Instance != null)
+        {
+            float start = Time.realtimeSinceStartup;
+            while (!GameFlowManager.Instance.IsXrReadyForStartup() &&
+                   Time.realtimeSinceStartup - start < xrExperimentStartTimeoutSeconds)
+            {
+                if (Time.frameCount % 60 == 0)
+                {
+                    TraceTrialStartupStep("trials_waiting_xr_before_experiment", $"waited={(Time.realtimeSinceStartup - start):F2}s; {AvatarTrackingDiagnostics.DescribeGlobalTracking()}");
+                }
+                yield return null;
+            }
+
+            TraceTrialStartupStep("trials_xr_gate_done", $"waited={(Time.realtimeSinceStartup - start):F2}s; ready={GameFlowManager.Instance.IsXrReadyForStartup()}; {AvatarTrackingDiagnostics.DescribeGlobalTracking()}");
+            ApplyParticipantAvatar();
+            ApplyDebaterAvatar();
+        }
+
+        yield return StartCoroutine(CheckTtsHealthAndRun());
     }
 
     private IEnumerator CheckTtsHealthAndRun()

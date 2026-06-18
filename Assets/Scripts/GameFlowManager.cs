@@ -46,6 +46,11 @@ public class GameFlowManager : MonoBehaviour
     public string femaleTalkerMirroredName = "female_talkerMirrored";
     public bool forceEnableSelectedAvatarRenderers = true;
 
+    [Header("XR Startup Gate")]
+    public bool waitForXrBeforeSceneTransitions = true;
+    public float xrReadyTimeoutSeconds = 8f;
+    public float xrStableSeconds = 0.5f;
+
     [Header("Logging")]
     [Tooltip("Write a CSV log under StreamingAssets/Audio/<session>_session (Editor) or persistentDataPath/Audio/<session>_session (build)")]
     public bool writeCsvLog = true;
@@ -139,9 +144,7 @@ public class GameFlowManager : MonoBehaviour
         }
 
         voiceSampleReadyToProceed = false;
-        TraceStartupStep("load_scene_requested", $"target={voiceSampleSceneName}; from={SceneManager.GetActiveScene().name}; xr={GetXrStatus()}");
-        Log("go_to_voice_sample_scene");
-        SceneManager.LoadSceneAsync(voiceSampleSceneName, LoadSceneMode.Single);
+        StartCoroutine(LoadSceneWhenXrReady(voiceSampleSceneName, "go_to_voice_sample_scene"));
     }
 
     /// <summary>
@@ -159,9 +162,7 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
 
-        TraceStartupStep("load_scene_requested", $"target={interactionSceneName}; from={activeScene}; xr={GetXrStatus()}");
-        Log("go_to_interaction_scene");
-        SceneManager.LoadSceneAsync(interactionSceneName, LoadSceneMode.Single);
+        StartCoroutine(LoadSceneWhenXrReady(interactionSceneName, "go_to_interaction_scene"));
     }
 
     /// <summary>
@@ -171,6 +172,11 @@ public class GameFlowManager : MonoBehaviour
     {
         Log("go_back_to_lobby");
         SceneManager.LoadSceneAsync(lobbySceneName, LoadSceneMode.Single);
+    }
+
+    public bool IsXrReadyForStartup()
+    {
+        return IsXrReady();
     }
 
     /// <summary>
@@ -287,6 +293,7 @@ public class GameFlowManager : MonoBehaviour
         ApplyParticipantAvatar();
         StartCoroutine(ReapplyParticipantAvatarAfterSceneSettles(scene.name));
         StartCoroutine(LogTrackingStatusAfterSceneSettles(scene.name));
+        StartCoroutine(ReapplyParticipantAvatarWhenXrReady(scene.name));
     }
 
     public void SetVoiceSampleReadyToProceed(bool ready)
@@ -349,6 +356,67 @@ public class GameFlowManager : MonoBehaviour
         yield return new WaitForSeconds(0.25f);
         TraceStartupStep("avatar_reapply_after_delay", $"scene={sceneName}");
         ApplyParticipantAvatar();
+    }
+
+    private IEnumerator ReapplyParticipantAvatarWhenXrReady(string sceneName)
+    {
+        yield return WaitForXrReady($"avatar_reapply_xr_ready scene={sceneName}");
+        TraceStartupStep("avatar_reapply_xr_ready", $"scene={sceneName}; {AvatarTrackingDiagnostics.DescribeGlobalTracking()}", "tracking");
+        ApplyParticipantAvatar();
+    }
+
+    private IEnumerator LoadSceneWhenXrReady(string sceneName, string logEvent)
+    {
+        string activeScene = SceneManager.GetActiveScene().name;
+        TraceStartupStep("load_scene_wait_xr_begin", $"target={sceneName}; from={activeScene}; wait={waitForXrBeforeSceneTransitions}; {AvatarTrackingDiagnostics.DescribeGlobalTracking()}", "tracking");
+
+        if (waitForXrBeforeSceneTransitions)
+        {
+            yield return WaitForXrReady($"load_scene target={sceneName}");
+        }
+
+        TraceStartupStep("load_scene_requested", $"target={sceneName}; from={activeScene}; {AvatarTrackingDiagnostics.DescribeGlobalTracking()}", "tracking");
+        Log(logEvent);
+        SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
+    }
+
+    private IEnumerator WaitForXrReady(string context)
+    {
+        float start = Time.realtimeSinceStartup;
+        float stableStart = -1f;
+        bool loggedWaiting = false;
+
+        while (Time.realtimeSinceStartup - start < xrReadyTimeoutSeconds)
+        {
+            bool ready = IsXrReady();
+            if (ready)
+            {
+                if (stableStart < 0f)
+                {
+                    stableStart = Time.realtimeSinceStartup;
+                    TraceStartupStep("xr_ready_seen", $"{context}; {AvatarTrackingDiagnostics.DescribeGlobalTracking()}", "tracking");
+                }
+
+                if (Time.realtimeSinceStartup - stableStart >= xrStableSeconds)
+                {
+                    TraceStartupStep("xr_ready_stable", $"{context}; stable={(Time.realtimeSinceStartup - stableStart):F2}s; {AvatarTrackingDiagnostics.DescribeGlobalTracking()}", "tracking");
+                    yield break;
+                }
+            }
+            else
+            {
+                stableStart = -1f;
+                if (!loggedWaiting || Time.realtimeSinceStartup - start > 2f)
+                {
+                    TraceStartupStep("xr_waiting", $"{context}; waited={(Time.realtimeSinceStartup - start):F2}s; {AvatarTrackingDiagnostics.DescribeGlobalTracking()}", "tracking");
+                    loggedWaiting = true;
+                }
+            }
+
+            yield return null;
+        }
+
+        TraceStartupStep("xr_ready_timeout", $"{context}; timeout={xrReadyTimeoutSeconds:F1}s; continuing; {AvatarTrackingDiagnostics.DescribeGlobalTracking()}", "tracking");
     }
 
     private IEnumerator LogTrackingStatusAfterSceneSettles(string sceneName)
@@ -450,5 +518,23 @@ public class GameFlowManager : MonoBehaviour
         {
             return $"xr_status_error={e.Message}";
         }
+    }
+
+    private static bool IsXrReady()
+    {
+        try
+        {
+            if (XRSettings.isDeviceActive) return true;
+            if (OVRInput.IsControllerConnected(OVRInput.Controller.RTouch)) return true;
+            if (OVRInput.IsControllerConnected(OVRInput.Controller.LTouch)) return true;
+            if (OVRInput.IsControllerConnected(OVRInput.Controller.Touch)) return true;
+            if (OVRInput.IsControllerConnected(OVRInput.Controller.Hands)) return true;
+        }
+        catch
+        {
+            return false;
+        }
+
+        return false;
     }
 }
