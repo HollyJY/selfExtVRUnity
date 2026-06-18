@@ -25,6 +25,7 @@ public class TrialsController : MonoBehaviour
     public GameObject femaleTalkerMirrored;
     public GameObject maleDebater;
     public GameObject femaleDebater;
+    public bool forceEnableSelectedAvatarRenderers = true;
 
     [Header("Scales")]
     public ScaleQuestionnaireController scaleController;
@@ -82,6 +83,7 @@ public class TrialsController : MonoBehaviour
         if (string.IsNullOrEmpty(sessionId)) sessionId = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
         if (string.IsNullOrEmpty(participantGender)) participantGender = "unspecified";
         TraceTrialStartupStep("trials_start_done", $"sessionId={sessionId}; participantGender={participantGender}; talkerGender={talkerGender}; debaterGender={debaterGender}; sequencer={DescribeObject(sequencer)}");
+        TraceTrialStartupStep("tracking_trials_start", AvatarTrackingDiagnostics.DescribeGlobalTracking());
         StartCoroutine(CheckTtsHealthAndRun());
     }
 
@@ -95,13 +97,17 @@ public class TrialsController : MonoBehaviour
         {
             if (femaleTalkerMirrored != null) femaleTalkerMirrored.SetActive(true);
             if (maleTalkerMirrored != null) maleTalkerMirrored.SetActive(false);
-            TraceTrialStartupStep("trials_avatar_apply_done", $"selected=female; male={DescribeObject(maleTalkerMirrored)}; female={DescribeObject(femaleTalkerMirrored)}");
+            if (femaleTalkerMirrored != null && forceEnableSelectedAvatarRenderers) EnableAvatarRenderers(femaleTalkerMirrored);
+            TraceTrialStartupStep("trials_avatar_apply_done", $"selected=female; male={DescribeAvatar(maleTalkerMirrored)}; female={DescribeAvatar(femaleTalkerMirrored)}");
+            TraceTrialStartupStep("tracking_trials_avatar_apply_done", $"selected=female; {AvatarTrackingDiagnostics.DescribeGlobalTracking()}; selectedTracking={AvatarTrackingDiagnostics.DescribeAvatarTracking(femaleTalkerMirrored)}");
         }
         else if (isMale)
         {
             if (maleTalkerMirrored != null) maleTalkerMirrored.SetActive(true);
             if (femaleTalkerMirrored != null) femaleTalkerMirrored.SetActive(false);
-            TraceTrialStartupStep("trials_avatar_apply_done", $"selected=male; male={DescribeObject(maleTalkerMirrored)}; female={DescribeObject(femaleTalkerMirrored)}");
+            if (maleTalkerMirrored != null && forceEnableSelectedAvatarRenderers) EnableAvatarRenderers(maleTalkerMirrored);
+            TraceTrialStartupStep("trials_avatar_apply_done", $"selected=male; male={DescribeAvatar(maleTalkerMirrored)}; female={DescribeAvatar(femaleTalkerMirrored)}");
+            TraceTrialStartupStep("tracking_trials_avatar_apply_done", $"selected=male; {AvatarTrackingDiagnostics.DescribeGlobalTracking()}; selectedTracking={AvatarTrackingDiagnostics.DescribeAvatarTracking(maleTalkerMirrored)}");
         }
         else
         {
@@ -119,13 +125,17 @@ public class TrialsController : MonoBehaviour
         {
             if (femaleDebater != null) femaleDebater.SetActive(true);
             if (maleDebater != null) maleDebater.SetActive(false);
-            TraceTrialStartupStep("trials_debater_apply_done", $"selected=female; male={DescribeObject(maleDebater)}; female={DescribeObject(femaleDebater)}");
+            if (femaleDebater != null && forceEnableSelectedAvatarRenderers) EnableAvatarRenderers(femaleDebater);
+            TraceTrialStartupStep("trials_debater_apply_done", $"selected=female; male={DescribeAvatar(maleDebater)}; female={DescribeAvatar(femaleDebater)}");
+            TraceTrialStartupStep("tracking_trials_debater_apply_done", $"selected=female; selectedTracking={AvatarTrackingDiagnostics.DescribeAvatarTracking(femaleDebater)}");
         }
         else if (isMale)
         {
             if (maleDebater != null) maleDebater.SetActive(true);
             if (femaleDebater != null) femaleDebater.SetActive(false);
-            TraceTrialStartupStep("trials_debater_apply_done", $"selected=male; male={DescribeObject(maleDebater)}; female={DescribeObject(femaleDebater)}");
+            if (maleDebater != null && forceEnableSelectedAvatarRenderers) EnableAvatarRenderers(maleDebater);
+            TraceTrialStartupStep("trials_debater_apply_done", $"selected=male; male={DescribeAvatar(maleDebater)}; female={DescribeAvatar(femaleDebater)}");
+            TraceTrialStartupStep("tracking_trials_debater_apply_done", $"selected=male; selectedTracking={AvatarTrackingDiagnostics.DescribeAvatarTracking(maleDebater)}");
         }
         else
         {
@@ -144,6 +154,12 @@ public class TrialsController : MonoBehaviour
         TraceTrialStartupStep("trials_avatar_reapply_after_delay", "");
         ApplyParticipantAvatar();
         ApplyDebaterAvatar();
+
+        yield return new WaitForSeconds(0.75f);
+        TraceTrialStartupStep("tracking_trials_status_1s", $"{AvatarTrackingDiagnostics.DescribeGlobalTracking()}; maleTalker={AvatarTrackingDiagnostics.DescribeAvatarTracking(maleTalkerMirrored)}; femaleTalker={AvatarTrackingDiagnostics.DescribeAvatarTracking(femaleTalkerMirrored)}; maleDebater={AvatarTrackingDiagnostics.DescribeAvatarTracking(maleDebater)}; femaleDebater={AvatarTrackingDiagnostics.DescribeAvatarTracking(femaleDebater)}");
+
+        yield return new WaitForSeconds(2f);
+        TraceTrialStartupStep("tracking_trials_status_3s", $"{AvatarTrackingDiagnostics.DescribeGlobalTracking()}; maleTalker={AvatarTrackingDiagnostics.DescribeAvatarTracking(maleTalkerMirrored)}; femaleTalker={AvatarTrackingDiagnostics.DescribeAvatarTracking(femaleTalkerMirrored)}; maleDebater={AvatarTrackingDiagnostics.DescribeAvatarTracking(maleDebater)}; femaleDebater={AvatarTrackingDiagnostics.DescribeAvatarTracking(femaleDebater)}");
     }
 
     private void PrepareAndRun()
@@ -556,6 +572,50 @@ public class TrialsController : MonoBehaviour
             return $"{go.name}(activeSelf={go.activeSelf}, activeInHierarchy={go.activeInHierarchy}, scene={go.scene.name})";
         }
         return obj.name;
+    }
+
+    private static void EnableAvatarRenderers(GameObject avatar)
+    {
+        foreach (Renderer renderer in avatar.GetComponentsInChildren<Renderer>(true))
+        {
+            renderer.enabled = true;
+        }
+    }
+
+    private static string DescribeAvatar(GameObject avatar)
+    {
+        if (avatar == null) return "<null>";
+
+        Renderer[] renderers = avatar.GetComponentsInChildren<Renderer>(true);
+        int enabled = 0;
+        int activeVisible = 0;
+        string firstRenderer = "<none>";
+        Bounds bounds = new Bounds(avatar.transform.position, Vector3.zero);
+        bool hasBounds = false;
+
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer renderer = renderers[i];
+            if (renderer.enabled) enabled++;
+            if (renderer.enabled && renderer.gameObject.activeInHierarchy) activeVisible++;
+            if (i == 0) firstRenderer = $"{renderer.name}(enabled={renderer.enabled}, active={renderer.gameObject.activeInHierarchy}, layer={LayerMask.LayerToName(renderer.gameObject.layer)})";
+
+            if (renderer.enabled)
+            {
+                if (!hasBounds)
+                {
+                    bounds = renderer.bounds;
+                    hasBounds = true;
+                }
+                else
+                {
+                    bounds.Encapsulate(renderer.bounds);
+                }
+            }
+        }
+
+        Transform t = avatar.transform;
+        return $"{DescribeObject(avatar)}; pos={t.position}; scale={t.lossyScale}; layer={LayerMask.LayerToName(avatar.layer)}; renderers={renderers.Length}; enabledRenderers={enabled}; activeVisibleRenderers={activeVisible}; firstRenderer={firstRenderer}; boundsCenter={bounds.center}; boundsSize={bounds.size}";
     }
 
     private void LoadTrialContext()

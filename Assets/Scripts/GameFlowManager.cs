@@ -44,6 +44,7 @@ public class GameFlowManager : MonoBehaviour
     [Header("Avatar")]
     public string maleTalkerMirroredName = "male_talkerMirrored";
     public string femaleTalkerMirroredName = "female_talkerMirrored";
+    public bool forceEnableSelectedAvatarRenderers = true;
 
     [Header("Logging")]
     [Tooltip("Write a CSV log under StreamingAssets/Audio/<session>_session (Editor) or persistentDataPath/Audio/<session>_session (build)")]
@@ -282,8 +283,10 @@ public class GameFlowManager : MonoBehaviour
             voiceSampleReadyToProceed = false;
             TraceStartupStep("voice_sample_gate_reset", "ready=false");
         }
+        TraceStartupStep("tracking_global_scene_loaded", AvatarTrackingDiagnostics.DescribeGlobalTracking(), "tracking");
         ApplyParticipantAvatar();
         StartCoroutine(ReapplyParticipantAvatarAfterSceneSettles(scene.name));
+        StartCoroutine(LogTrackingStatusAfterSceneSettles(scene.name));
     }
 
     public void SetVoiceSampleReadyToProceed(bool ready)
@@ -317,18 +320,23 @@ public class GameFlowManager : MonoBehaviour
         GameObject male = FindAvatarByName(maleTalkerMirroredName);
         GameObject female = FindAvatarByName(femaleTalkerMirroredName);
         TraceStartupStep("avatar_lookup_result", $"male={DescribeObject(male)}; female={DescribeObject(female)}");
+        TraceStartupStep("tracking_avatar_lookup_result", $"male={AvatarTrackingDiagnostics.DescribeAvatarTracking(male)}; female={AvatarTrackingDiagnostics.DescribeAvatarTracking(female)}", "tracking");
 
         if (isFemale)
         {
             if (female != null) female.SetActive(true);
             if (male != null) male.SetActive(false);
-            TraceStartupStep("avatar_apply_done", $"selected=female; male={DescribeObject(male)}; female={DescribeObject(female)}");
+            if (female != null && forceEnableSelectedAvatarRenderers) EnableAvatarRenderers(female);
+            TraceStartupStep("avatar_apply_done", $"selected=female; male={DescribeAvatar(male)}; female={DescribeAvatar(female)}");
+            TraceStartupStep("tracking_avatar_apply_done", $"selected=female; {AvatarTrackingDiagnostics.DescribeGlobalTracking()}; selectedTracking={AvatarTrackingDiagnostics.DescribeAvatarTracking(female)}", "tracking");
         }
         else if (isMale)
         {
             if (male != null) male.SetActive(true);
             if (female != null) female.SetActive(false);
-            TraceStartupStep("avatar_apply_done", $"selected=male; male={DescribeObject(male)}; female={DescribeObject(female)}");
+            if (male != null && forceEnableSelectedAvatarRenderers) EnableAvatarRenderers(male);
+            TraceStartupStep("avatar_apply_done", $"selected=male; male={DescribeAvatar(male)}; female={DescribeAvatar(female)}");
+            TraceStartupStep("tracking_avatar_apply_done", $"selected=male; {AvatarTrackingDiagnostics.DescribeGlobalTracking()}; selectedTracking={AvatarTrackingDiagnostics.DescribeAvatarTracking(male)}", "tracking");
         }
     }
 
@@ -341,6 +349,21 @@ public class GameFlowManager : MonoBehaviour
         yield return new WaitForSeconds(0.25f);
         TraceStartupStep("avatar_reapply_after_delay", $"scene={sceneName}");
         ApplyParticipantAvatar();
+    }
+
+    private IEnumerator LogTrackingStatusAfterSceneSettles(string sceneName)
+    {
+        float[] delays = { 0.5f, 1.5f, 3f };
+        for (int i = 0; i < delays.Length; i++)
+        {
+            yield return new WaitForSeconds(delays[i]);
+            GameObject male = FindAvatarByName(maleTalkerMirroredName);
+            GameObject female = FindAvatarByName(femaleTalkerMirroredName);
+            TraceStartupStep(
+                "tracking_status_delayed",
+                $"scene={sceneName}; delay={delays[i]:F1}s; {AvatarTrackingDiagnostics.DescribeGlobalTracking()}; male={AvatarTrackingDiagnostics.DescribeAvatarTracking(male)}; female={AvatarTrackingDiagnostics.DescribeAvatarTracking(female)}",
+                "tracking");
+        }
     }
 
     private static GameObject FindAvatarByName(string name)
@@ -364,6 +387,50 @@ public class GameFlowManager : MonoBehaviour
     {
         if (obj == null) return "<null>";
         return $"{obj.name}(activeSelf={obj.activeSelf}, activeInHierarchy={obj.activeInHierarchy}, scene={obj.scene.name})";
+    }
+
+    private static void EnableAvatarRenderers(GameObject avatar)
+    {
+        foreach (Renderer renderer in avatar.GetComponentsInChildren<Renderer>(true))
+        {
+            renderer.enabled = true;
+        }
+    }
+
+    private static string DescribeAvatar(GameObject avatar)
+    {
+        if (avatar == null) return "<null>";
+
+        Renderer[] renderers = avatar.GetComponentsInChildren<Renderer>(true);
+        int enabled = 0;
+        int activeVisible = 0;
+        string firstRenderer = "<none>";
+        Bounds bounds = new Bounds(avatar.transform.position, Vector3.zero);
+        bool hasBounds = false;
+
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer renderer = renderers[i];
+            if (renderer.enabled) enabled++;
+            if (renderer.enabled && renderer.gameObject.activeInHierarchy) activeVisible++;
+            if (i == 0) firstRenderer = $"{renderer.name}(enabled={renderer.enabled}, active={renderer.gameObject.activeInHierarchy}, layer={LayerMask.LayerToName(renderer.gameObject.layer)})";
+
+            if (renderer.enabled)
+            {
+                if (!hasBounds)
+                {
+                    bounds = renderer.bounds;
+                    hasBounds = true;
+                }
+                else
+                {
+                    bounds.Encapsulate(renderer.bounds);
+                }
+            }
+        }
+
+        Transform t = avatar.transform;
+        return $"{DescribeObject(avatar)}; pos={t.position}; scale={t.lossyScale}; layer={LayerMask.LayerToName(avatar.layer)}; renderers={renderers.Length}; enabledRenderers={enabled}; activeVisibleRenderers={activeVisible}; firstRenderer={firstRenderer}; boundsCenter={bounds.center}; boundsSize={bounds.size}";
     }
 
     private static string GetXrStatus()
