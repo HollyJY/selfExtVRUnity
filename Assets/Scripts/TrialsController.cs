@@ -71,6 +71,7 @@ public class TrialsController : MonoBehaviour
         LoadTrialContext();
         ApplyParticipantAvatar();
         ApplyDebaterAvatar();
+        StartCoroutine(ReapplyAvatarsAfterSceneSettles());
         if (scalesRoot != null)
         {
             scalesRoot.SetActive(false);
@@ -130,6 +131,19 @@ public class TrialsController : MonoBehaviour
         {
             TraceTrialStartupStep("trials_debater_apply_skipped", $"unsupported_debaterGender={debaterGender}");
         }
+    }
+
+    private IEnumerator ReapplyAvatarsAfterSceneSettles()
+    {
+        yield return null;
+        TraceTrialStartupStep("trials_avatar_reapply_next_frame", "");
+        ApplyParticipantAvatar();
+        ApplyDebaterAvatar();
+
+        yield return new WaitForSeconds(0.25f);
+        TraceTrialStartupStep("trials_avatar_reapply_after_delay", "");
+        ApplyParticipantAvatar();
+        ApplyDebaterAvatar();
     }
 
     private void PrepareAndRun()

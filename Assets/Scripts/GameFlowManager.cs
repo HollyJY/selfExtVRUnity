@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -282,6 +283,7 @@ public class GameFlowManager : MonoBehaviour
             TraceStartupStep("voice_sample_gate_reset", "ready=false");
         }
         ApplyParticipantAvatar();
+        StartCoroutine(ReapplyParticipantAvatarAfterSceneSettles(scene.name));
     }
 
     public void SetVoiceSampleReadyToProceed(bool ready)
@@ -328,6 +330,17 @@ public class GameFlowManager : MonoBehaviour
             if (female != null) female.SetActive(false);
             TraceStartupStep("avatar_apply_done", $"selected=male; male={DescribeObject(male)}; female={DescribeObject(female)}");
         }
+    }
+
+    private IEnumerator ReapplyParticipantAvatarAfterSceneSettles(string sceneName)
+    {
+        yield return null;
+        TraceStartupStep("avatar_reapply_next_frame", $"scene={sceneName}");
+        ApplyParticipantAvatar();
+
+        yield return new WaitForSeconds(0.25f);
+        TraceStartupStep("avatar_reapply_after_delay", $"scene={sceneName}");
+        ApplyParticipantAvatar();
     }
 
     private static GameObject FindAvatarByName(string name)
