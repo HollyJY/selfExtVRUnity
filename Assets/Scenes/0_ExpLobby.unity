@@ -1213,6 +1213,7 @@ MonoBehaviour:
   lengthSec: 10
   loop: 1
   monitorPlayback: 1
+  microphoneReadyTimeout: 5
   maxSpeakSeconds: 20
   OnMicStarted:
     m_PersistentCalls:
@@ -1221,6 +1222,9 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   OnMicPermissionDenied:
+    m_PersistentCalls:
+      m_Calls: []
+  OnMicStartFailed:
     m_PersistentCalls:
       m_Calls: []
   saveOnFinish: 1
@@ -5755,10 +5759,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9544103afaa4940fda9a105bd205f4ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  participantId: P12
-  participantGender: 2
-  talkerGender: 2
-  debaterGender: 2
+  participantId: P101
+  participantGender: 1
+  talkerGender: 1
+  debaterGender: 1
   lobbySceneName: 0_ExpLobby
   voiceSampleSceneName: 1_VoiceSample
   interactionSceneName: 2_InteractionScene
