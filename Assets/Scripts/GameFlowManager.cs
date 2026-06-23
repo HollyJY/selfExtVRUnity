@@ -57,6 +57,17 @@ public class GameFlowManager : MonoBehaviour
     public float bodyTrackingReadyTimeoutSeconds = 15f;
     public float bodyTrackingStableSeconds = 0.75f;
 
+    [Header("Microphone Startup Check")]
+    public bool checkMicrophoneOnStartup = true;
+    public string startupMicrophoneDevice = "";
+    public int startupMicrophoneSampleRate = 16000;
+    public float startupMicrophoneReadyTimeoutSeconds = 3f;
+    public float startupMicrophoneCheckDurationSeconds = 1f;
+    public float startupMicrophoneSilentPeakThreshold = 0.003f;
+    public float startupMicrophoneLowRmsThreshold = 0.001f;
+    public bool showStartupWarningsOnScreen = true;
+    public float startupWarningDisplaySeconds = 8f;
+
     [Header("Logging")]
     [Tooltip("Write a CSV log under StreamingAssets/Audio/<session>_session (Editor) or persistentDataPath/Audio/<session>_session (build)")]
     public bool writeCsvLog = true;
@@ -66,6 +77,8 @@ public class GameFlowManager : MonoBehaviour
     private float t0;
     private bool logReady;
     private bool voiceSampleReadyToProceed;
+    private string startupWarningMessage;
+    private float startupWarningUntil;
 
     private void Awake()
     {
@@ -91,6 +104,31 @@ public class GameFlowManager : MonoBehaviour
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void Start()
+    {
+        if (checkMicrophoneOnStartup)
+        {
+            StartCoroutine(CheckMicrophoneAtStartup());
+        }
+    }
+
+    private void OnGUI()
+    {
+        if (!showStartupWarningsOnScreen || string.IsNullOrEmpty(startupWarningMessage))
+        {
+            return;
+        }
+
+        if (Time.realtimeSinceStartup > startupWarningUntil)
+        {
+            return;
+        }
+
+        const float margin = 24f;
+        Rect rect = new Rect(margin, margin, Screen.width - margin * 2f, 96f);
+        GUI.Box(rect, startupWarningMessage);
     }
 
     /// <summary>
@@ -488,6 +526,225 @@ public class GameFlowManager : MonoBehaviour
                 $"scene={sceneName}; elapsed={elapsed:F1}s; {AvatarTrackingDiagnostics.DescribeGlobalTracking()}; male={AvatarTrackingDiagnostics.DescribeAvatarTracking(male)}; female={AvatarTrackingDiagnostics.DescribeAvatarTracking(female)}",
                 "tracking");
         }
+    }
+
+    private IEnumerator CheckMicrophoneAtStartup()
+    {
+        TraceStartupStep("microphone_startup_check_begin", $"devices={GetMicrophoneDevicesForLog()}; configuredDevice={startupMicrophoneDevice}; sampleRate={startupMicrophoneSampleRate}");
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+        const string androidMicPermission = "android.permission.RECORD_AUDIO";
+        if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(androidMicPermission))
+        {
+            TraceStartupStep("microphone_startup_permission_request", androidMicPermission);
+            UnityEngine.Android.Permission.RequestUserPermission(androidMicPermission);
+
+            float permissionWait = 0f;
+            while (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(androidMicPermission) &&
+                   permissionWait < startupMicrophoneReadyTimeoutSeconds)
+            {
+                permissionWait += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(androidMicPermission))
+            {
+                WarnStartup("Microphone warning: Android RECORD_AUDIO permission was not granted. Voice recording will not work.");
+                TraceStartupStep("microphone_startup_permission_denied", $"waited={permissionWait:F2}s");
+                yield break;
+            }
+        }
+#endif
+
+        string device = startupMicrophoneDevice;
+        if (string.IsNullOrEmpty(device))
+        {
+            device = PickStartupMicrophone();
+        }
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+        if (string.IsNullOrEmpty(device))
+        {
+            device = null;
+            TraceStartupStep("microphone_startup_android_default_device", "using platform default mic");
+        }
+#else
+        if (string.IsNullOrEmpty(device))
+        {
+            WarnStartup("Microphone warning: no microphone devices were found. Voice recording will not work.");
+            TraceStartupStep("microphone_startup_no_devices", "");
+            yield break;
+        }
+#endif
+
+        string deviceLabel = string.IsNullOrEmpty(device) ? "<default>" : device;
+        int clipLengthSeconds = Mathf.Max(1, Mathf.CeilToInt(startupMicrophoneCheckDurationSeconds + 1f));
+        AudioClip clip = null;
+
+        TraceStartupStep("microphone_startup_start_call", $"device={deviceLabel}; clipLengthSeconds={clipLengthSeconds}; sampleRate={startupMicrophoneSampleRate}");
+        try
+        {
+            clip = Microphone.Start(device, false, clipLengthSeconds, startupMicrophoneSampleRate);
+        }
+        catch (Exception e)
+        {
+            WarnStartup($"Microphone warning: failed to start microphone '{deviceLabel}'. {e.Message}");
+            TraceStartupStep("microphone_startup_start_exception", $"device={deviceLabel}; error={e.Message}");
+            yield break;
+        }
+
+        if (clip == null)
+        {
+            WarnStartup($"Microphone warning: Unity could not start microphone '{deviceLabel}'. Voice recording may fail.");
+            TraceStartupStep("microphone_startup_clip_null", $"device={deviceLabel}");
+            yield break;
+        }
+
+        int position = 0;
+        float readyWait = 0f;
+        while (position <= 0 && readyWait < startupMicrophoneReadyTimeoutSeconds)
+        {
+            try
+            {
+                position = Microphone.GetPosition(device);
+            }
+            catch (Exception e)
+            {
+                Microphone.End(device);
+                WarnStartup($"Microphone warning: failed to read microphone position for '{deviceLabel}'. {e.Message}");
+                TraceStartupStep("microphone_startup_position_exception", $"device={deviceLabel}; error={e.Message}");
+                yield break;
+            }
+
+            if (position > 0)
+            {
+                break;
+            }
+
+            readyWait += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        if (position <= 0)
+        {
+            bool isRecording = IsMicrophoneRecordingSafe(device);
+            Microphone.End(device);
+            WarnStartup($"Microphone warning: microphone '{deviceLabel}' did not produce samples within {startupMicrophoneReadyTimeoutSeconds:F1}s. It may be muted, blocked, or unavailable.");
+            TraceStartupStep("microphone_startup_no_samples", $"device={deviceLabel}; isRecording={isRecording}");
+            yield break;
+        }
+
+        float sampleWait = 0f;
+        while (sampleWait < startupMicrophoneCheckDurationSeconds)
+        {
+            sampleWait += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        try
+        {
+            position = Microphone.GetPosition(device);
+        }
+        catch (Exception e)
+        {
+            Microphone.End(device);
+            WarnStartup($"Microphone warning: failed to finish microphone check for '{deviceLabel}'. {e.Message}");
+            TraceStartupStep("microphone_startup_final_position_exception", $"device={deviceLabel}; error={e.Message}");
+            yield break;
+        }
+
+        Microphone.End(device);
+
+        int frames = Mathf.Clamp(position, 1, clip.samples);
+        float[] samples = new float[frames * clip.channels];
+        clip.GetData(samples, 0);
+        GetSignalStats(samples, out float peak, out float rms);
+
+        string detail = $"device={deviceLabel}; frames={frames}; channels={clip.channels}; frequency={clip.frequency}; peak={peak:F6}; rms={rms:F6}";
+        if (peak < startupMicrophoneSilentPeakThreshold || rms < startupMicrophoneLowRmsThreshold)
+        {
+            WarnStartup($"Microphone warning: '{deviceLabel}' is connected, but startup input level is very low (peak={peak:F4}, rms={rms:F4}). It may be muted, blocked, or too quiet.");
+            TraceStartupStep("microphone_startup_low_input", detail);
+            yield break;
+        }
+
+        TraceStartupStep("microphone_startup_check_ok", detail);
+    }
+
+    private void WarnStartup(string message)
+    {
+        startupWarningMessage = message;
+        startupWarningUntil = Time.realtimeSinceStartup + startupWarningDisplaySeconds;
+        Debug.LogWarning(message);
+        TraceStartupStep("startup_warning", message);
+    }
+
+    private string PickStartupMicrophone()
+    {
+        string[] devices = Microphone.devices;
+        if (devices == null || devices.Length == 0)
+        {
+            return "";
+        }
+
+        foreach (string dev in devices)
+        {
+            string lower = dev.ToLowerInvariant();
+            if (lower.Contains("oculus") || lower.Contains("quest") || lower.Contains("meta") || lower.Contains("hmd") || lower.Contains("vr") || lower.Contains("headset"))
+            {
+                return dev;
+            }
+        }
+
+        return devices[0];
+    }
+
+    private static string GetMicrophoneDevicesForLog()
+    {
+        string[] devices = Microphone.devices;
+        if (devices == null || devices.Length == 0)
+        {
+            return "<none>";
+        }
+
+        return string.Join("|", devices);
+    }
+
+    private static bool IsMicrophoneRecordingSafe(string deviceName)
+    {
+        try
+        {
+            return Microphone.IsRecording(deviceName);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static void GetSignalStats(float[] samples, out float peak, out float rms)
+    {
+        peak = 0f;
+        rms = 0f;
+
+        if (samples == null || samples.Length == 0)
+        {
+            return;
+        }
+
+        double sumSquares = 0.0;
+        for (int i = 0; i < samples.Length; i++)
+        {
+            float abs = Mathf.Abs(samples[i]);
+            if (abs > peak)
+            {
+                peak = abs;
+            }
+
+            sumSquares += samples[i] * samples[i];
+        }
+
+        rms = Mathf.Sqrt((float)(sumSquares / samples.Length));
     }
 
     private static GameObject FindAvatarByName(string name)
