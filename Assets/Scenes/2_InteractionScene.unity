@@ -2216,12 +2216,15 @@ MonoBehaviour:
   femaleTalkerMirrored: {fileID: 966134315}
   maleDebater: {fileID: 1769536936}
   femaleDebater: {fileID: 588884255}
+  forceEnableSelectedAvatarRenderers: 1
   scaleController: {fileID: 758225397}
   scalesRoot: {fileID: 758225390}
   hideDebaterDuringScales: 1
   restAfterTrial: 6
   writeCsvLog: 1
   logRelativePath: logs/experiment_log.csv
+  waitForXrBeforeExperimentStart: 1
+  xrExperimentStartTimeoutSeconds: 8
   ttsEndpoint: http://192.168.37.177:7003/api/v1/tts
   expInfoFilePrefix: expInfo_
   refMalePath: ExpMaterial/sample_male
@@ -2247,7 +2250,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &583535059
 Transform:
   m_ObjectHideFlags: 0
@@ -5746,11 +5749,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4236296434230476906, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4236296434230476906, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchorMin.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4236296434230476906, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_SizeDelta.x
@@ -5762,11 +5765,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4236296434230476906, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 75
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4236296434230476906, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -67
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5140576997555375988, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_Controller
@@ -5778,11 +5781,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6384598719118635554, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6384598719118635554, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchorMin.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6384598719118635554, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_SizeDelta.x
@@ -5794,11 +5797,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6384598719118635554, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 75
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6384598719118635554, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -75
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6478805311359556866, guid: f4ae769ba4a46d84c9e04c6914423ca2, type: 3}
       propertyPath: m_Layer
@@ -8869,6 +8872,7 @@ MonoBehaviour:
   lengthSec: 120
   loop: 1
   monitorPlayback: 1
+  microphoneReadyTimeout: 5
   maxSpeakSeconds: 120
   OnMicStarted:
     m_PersistentCalls:
@@ -8877,6 +8881,9 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   OnMicPermissionDenied:
+    m_PersistentCalls:
+      m_Calls: []
+  OnMicStartFailed:
     m_PersistentCalls:
       m_Calls: []
   saveOnFinish: 1

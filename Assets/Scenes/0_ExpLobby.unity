@@ -235,6 +235,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   goToVoiceSample: 1
   customSceneName: 
+  waitForXrBeforeControllerTrigger: 1
+  controllerTriggerReadyTimeoutSeconds: 8
 --- !u!1 &148162055
 GameObject:
   m_ObjectHideFlags: 0
@@ -674,7 +676,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &406472513
 Transform:
   m_ObjectHideFlags: 0
@@ -5768,6 +5770,10 @@ MonoBehaviour:
   interactionSceneName: 2_InteractionScene
   maleTalkerMirroredName: male_talkerMirrored
   femaleTalkerMirroredName: female_talkerMirrored
+  forceEnableSelectedAvatarRenderers: 1
+  waitForXrBeforeSceneTransitions: 1
+  xrReadyTimeoutSeconds: 8
+  xrStableSeconds: 0.5
   writeCsvLog: 1
 --- !u!4 &1906090651
 Transform:

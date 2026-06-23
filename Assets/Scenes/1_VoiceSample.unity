@@ -1242,6 +1242,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::InstructionPanelController
   goToVoiceSample: 0
   customSceneName: 2_InteractionScene
+  waitForXrBeforeControllerTrigger: 1
+  controllerTriggerReadyTimeoutSeconds: 8
 --- !u!1 &375156969
 GameObject:
   m_ObjectHideFlags: 0
@@ -4683,6 +4685,7 @@ MonoBehaviour:
   lengthSec: 10
   loop: 1
   monitorPlayback: 1
+  microphoneReadyTimeout: 5
   maxSpeakSeconds: 60
   OnMicStarted:
     m_PersistentCalls:
@@ -4691,6 +4694,9 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   OnMicPermissionDenied:
+    m_PersistentCalls:
+      m_Calls: []
+  OnMicStartFailed:
     m_PersistentCalls:
       m_Calls: []
   saveOnFinish: 1
@@ -5724,7 +5730,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &851691333
 Transform:
   m_ObjectHideFlags: 0
