@@ -663,7 +663,7 @@ public class GameFlowManager : MonoBehaviour
         string detail = $"device={deviceLabel}; frames={frames}; channels={clip.channels}; frequency={clip.frequency}; peak={peak:F6}; rms={rms:F6}";
         if (peak < startupMicrophoneSilentPeakThreshold || rms < startupMicrophoneLowRmsThreshold)
         {
-            WarnStartup($"Microphone warning: '{deviceLabel}' is connected, but startup input level is very low (peak={peak:F4}, rms={rms:F4}). It may be muted, blocked, or too quiet.");
+            ErrorStartup($"Microphone warning: '{deviceLabel}' is connected, but startup input level is very low (peak={peak:F4}, rms={rms:F4}). It may be muted, blocked, or too quiet.");
             TraceStartupStep("microphone_startup_low_input", detail);
             yield break;
         }
@@ -677,6 +677,14 @@ public class GameFlowManager : MonoBehaviour
         startupWarningUntil = Time.realtimeSinceStartup + startupWarningDisplaySeconds;
         Debug.LogWarning(message);
         TraceStartupStep("startup_warning", message);
+    }
+
+    private void ErrorStartup(string message)
+    {
+        startupWarningMessage = message;
+        startupWarningUntil = Time.realtimeSinceStartup + startupWarningDisplaySeconds;
+        Debug.LogError(message);
+        TraceStartupStep("startup_error", message);
     }
 
     private string PickStartupMicrophone()
