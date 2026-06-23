@@ -5787,6 +5787,19 @@ MonoBehaviour:
   waitForXrBeforeSceneTransitions: 1
   xrReadyTimeoutSeconds: 8
   xrStableSeconds: 0.5
+  waitForBodyTrackingBeforeExperimentStart: 1
+  bodyTrackingRetargeterObjectName: male_talker
+  bodyTrackingReadyTimeoutSeconds: 15
+  bodyTrackingStableSeconds: 0.75
+  checkMicrophoneOnStartup: 1
+  startupMicrophoneDevice: 
+  startupMicrophoneSampleRate: 16000
+  startupMicrophoneReadyTimeoutSeconds: 3
+  startupMicrophoneCheckDurationSeconds: 1
+  startupMicrophoneSilentPeakThreshold: 0.003
+  startupMicrophoneLowRmsThreshold: 0.001
+  showStartupWarningsOnScreen: 1
+  startupWarningDisplaySeconds: 8
   writeCsvLog: 1
 --- !u!4 &1906090651
 Transform:
@@ -5911,7 +5924,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: be3ebb6547662534aaef8337c5627f3b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _providedSkeletonType: 0
+  _providedSkeletonType: 1
   _validBodyTrackingDelay: 0.25
   _debugDrawSkeleton: 1
   _debugSkeletonColor: {r: 1, g: 1, b: 1, a: 1}
