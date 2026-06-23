@@ -51,6 +51,12 @@ public class GameFlowManager : MonoBehaviour
     public float xrReadyTimeoutSeconds = 8f;
     public float xrStableSeconds = 0.5f;
 
+    [Header("Body Tracking Startup Gate")]
+    public bool waitForBodyTrackingBeforeExperimentStart = true;
+    public string bodyTrackingRetargeterObjectName = "male_talker";
+    public float bodyTrackingReadyTimeoutSeconds = 15f;
+    public float bodyTrackingStableSeconds = 0.75f;
+
     [Header("Logging")]
     [Tooltip("Write a CSV log under StreamingAssets/Audio/<session>_session (Editor) or persistentDataPath/Audio/<session>_session (build)")]
     public bool writeCsvLog = true;
@@ -177,6 +183,53 @@ public class GameFlowManager : MonoBehaviour
     public bool IsXrReadyForStartup()
     {
         return IsXrReady();
+    }
+
+    public bool IsBodyTrackingReadyForStartup()
+    {
+        return IsBodyTrackingReady(out _);
+    }
+
+    public IEnumerator WaitForBodyTrackingReady(string context)
+    {
+        float start = Time.realtimeSinceStartup;
+        float stableStart = -1f;
+        float nextLogAt = 0f;
+
+        while (Time.realtimeSinceStartup - start < bodyTrackingReadyTimeoutSeconds)
+        {
+            bool ready = IsBodyTrackingReady(out string status);
+            float waited = Time.realtimeSinceStartup - start;
+
+            if (ready)
+            {
+                if (stableStart < 0f)
+                {
+                    stableStart = Time.realtimeSinceStartup;
+                    TraceStartupStep("body_tracking_ready_seen", $"{context}; waited={waited:F2}s; {status}", "tracking");
+                }
+
+                if (Time.realtimeSinceStartup - stableStart >= bodyTrackingStableSeconds)
+                {
+                    TraceStartupStep("body_tracking_ready_stable", $"{context}; waited={waited:F2}s; stable={(Time.realtimeSinceStartup - stableStart):F2}s; {status}", "tracking");
+                    yield break;
+                }
+            }
+            else
+            {
+                stableStart = -1f;
+                if (waited >= nextLogAt)
+                {
+                    TraceStartupStep("body_tracking_waiting", $"{context}; waited={waited:F2}s; {status}", "tracking");
+                    nextLogAt = waited + 1f;
+                }
+            }
+
+            yield return null;
+        }
+
+        IsBodyTrackingReady(out string finalStatus);
+        TraceStartupStep("body_tracking_ready_timeout", $"{context}; timeout={bodyTrackingReadyTimeoutSeconds:F1}s; continuing; {finalStatus}", "tracking");
     }
 
     /// <summary>
@@ -536,5 +589,136 @@ public class GameFlowManager : MonoBehaviour
         }
 
         return false;
+    }
+
+    private bool IsBodyTrackingReady(out string status)
+    {
+        Component retargeter = FindBodyTrackingRetargeter();
+        if (retargeter == null)
+        {
+            status = $"retargeter=<null>; objectName={bodyTrackingRetargeterObjectName}";
+            return false;
+        }
+
+        Type retargeterType = retargeter.GetType();
+        bool retargeterEnabled = !(retargeter is Behaviour behaviour) || behaviour.isActiveAndEnabled;
+        bool isValid = ReadBoolMember(retargeter, retargeterType, "IsValid");
+        bool retargeterValid = ReadBoolMember(retargeter, retargeterType, "RetargeterValid");
+        object skeletonRetargeter = ReadMember(retargeter, retargeterType, "SkeletonRetargeter");
+        bool initialized = ReadBoolMember(skeletonRetargeter, skeletonRetargeter?.GetType(), "IsInitialized");
+        bool appliedPose = ReadBoolMember(skeletonRetargeter, skeletonRetargeter?.GetType(), "AppliedPose");
+        bool applyRootScale = ReadBoolMember(skeletonRetargeter, skeletonRetargeter?.GetType(), "ApplyRootScale");
+
+        object provider = ReadMember(retargeter, retargeterType, "DataProvider");
+        bool poseValid = InvokeBoolMember(provider, provider?.GetType(), "IsPoseValid");
+        string manifestation = InvokeStringMember(provider, provider?.GetType(), "GetManifestation");
+
+        status =
+            $"retargeter={retargeter.GetType().Name}:{retargeter.gameObject.name}; enabled={retargeterEnabled}; " +
+            $"isValid={isValid}; retargeterValid={retargeterValid}; initialized={initialized}; appliedPose={appliedPose}; " +
+            $"applyRootScale={applyRootScale}; provider={DescribeReflectedObject(provider)}; poseValid={poseValid}; manifestation={manifestation}";
+
+        return retargeterEnabled && isValid && retargeterValid && initialized && appliedPose && poseValid;
+    }
+
+    private Component FindBodyTrackingRetargeter()
+    {
+        GameObject target = FindAvatarByName(bodyTrackingRetargeterObjectName);
+        if (target != null)
+        {
+            Component component = FindComponentByTypeName(target.GetComponents<Component>(), "CharacterRetargeter");
+            if (component != null) return component;
+        }
+
+        foreach (Component component in Resources.FindObjectsOfTypeAll<Component>())
+        {
+            if (component == null) continue;
+            if (component.GetType().Name != "CharacterRetargeter") continue;
+            if (!component.gameObject.scene.IsValid() || !component.gameObject.scene.isLoaded) continue;
+            return component;
+        }
+
+        return null;
+    }
+
+    private static Component FindComponentByTypeName(Component[] components, string typeName)
+    {
+        foreach (Component component in components)
+        {
+            if (component == null) continue;
+            Type type = component.GetType();
+            if (type.Name == typeName) return component;
+        }
+
+        return null;
+    }
+
+    private static object ReadMember(object instance, Type type, string memberName)
+    {
+        if (instance == null || type == null) return null;
+        const System.Reflection.BindingFlags flags =
+            System.Reflection.BindingFlags.Instance |
+            System.Reflection.BindingFlags.Public |
+            System.Reflection.BindingFlags.NonPublic;
+
+        System.Reflection.PropertyInfo property = type.GetProperty(memberName, flags);
+        if (property != null && property.GetIndexParameters().Length == 0)
+        {
+            try { return property.GetValue(instance); }
+            catch { return null; }
+        }
+
+        System.Reflection.FieldInfo field = type.GetField(memberName, flags);
+        if (field != null)
+        {
+            try { return field.GetValue(instance); }
+            catch { return null; }
+        }
+
+        return null;
+    }
+
+    private static bool ReadBoolMember(object instance, Type type, string memberName)
+    {
+        object value = ReadMember(instance, type, memberName);
+        return value is bool boolValue && boolValue;
+    }
+
+    private static bool InvokeBoolMember(object instance, Type type, string methodName)
+    {
+        object value = InvokeMember(instance, type, methodName);
+        return value is bool boolValue && boolValue;
+    }
+
+    private static string InvokeStringMember(object instance, Type type, string methodName)
+    {
+        object value = InvokeMember(instance, type, methodName);
+        return value?.ToString() ?? "<null>";
+    }
+
+    private static object InvokeMember(object instance, Type type, string methodName)
+    {
+        if (instance == null || type == null) return null;
+        const System.Reflection.BindingFlags flags =
+            System.Reflection.BindingFlags.Instance |
+            System.Reflection.BindingFlags.Public |
+            System.Reflection.BindingFlags.NonPublic;
+
+        System.Reflection.MethodInfo method = type.GetMethod(methodName, flags, null, Type.EmptyTypes, null);
+        if (method == null) return null;
+
+        try { return method.Invoke(instance, null); }
+        catch { return null; }
+    }
+
+    private static string DescribeReflectedObject(object value)
+    {
+        if (value == null) return "<null>";
+        if (value is UnityEngine.Object unityObject)
+        {
+            return unityObject == null ? "<null>" : $"{unityObject.GetType().Name}:{unityObject.name}";
+        }
+
+        return value.GetType().Name;
     }
 }

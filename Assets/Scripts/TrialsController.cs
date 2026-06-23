@@ -192,6 +192,14 @@ public class TrialsController : MonoBehaviour
             ApplyDebaterAvatar();
         }
 
+        if (GameFlowManager.Instance != null && GameFlowManager.Instance.waitForBodyTrackingBeforeExperimentStart)
+        {
+            yield return StartCoroutine(GameFlowManager.Instance.WaitForBodyTrackingReady("trials_start"));
+            TraceTrialStartupStep("trials_body_tracking_gate_done", $"ready={GameFlowManager.Instance.IsBodyTrackingReadyForStartup()}");
+            ApplyParticipantAvatar();
+            ApplyDebaterAvatar();
+        }
+
         yield return StartCoroutine(CheckTtsHealthAndRun());
     }
 
