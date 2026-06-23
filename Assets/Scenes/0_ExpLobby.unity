@@ -2105,6 +2105,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 5057abb8caa7141a38acca9ab9ddccee, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2121911836}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 5057abb8caa7141a38acca9ab9ddccee, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2121911839}
   m_SourcePrefab: {fileID: 100100000, guid: 5057abb8caa7141a38acca9ab9ddccee, type: 3}
 --- !u!4 &898258560 stripped
 Transform:
@@ -5908,9 +5911,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: be3ebb6547662534aaef8337c5627f3b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _providedSkeletonType: 1
+  _providedSkeletonType: 0
   _validBodyTrackingDelay: 0.25
-  _debugDrawSkeleton: 0
+  _debugDrawSkeleton: 1
   _debugSkeletonColor: {r: 1, g: 1, b: 1, a: 1}
   _enableAIMotionSynthesizer: 0
   _aiMotionSynthesizerConfig:
@@ -6090,7 +6093,7 @@ MonoBehaviour:
     _retargetingBehavior: 0
     _hideLowerBodyWhenUpperBodyTracking: 0
     _hideLegScale: {x: 0, y: 0, z: 0}
-    _applyRootScale: 1
+    _applyRootScale: 0
     _applyHeadScale: 1
     _currentScale: 1
     _headScaleFactor: 0.95
@@ -6115,6 +6118,21 @@ MonoBehaviour:
   installationRoutineCheckpoint:
     _installationRoutineId: 
     _installationVariants: []
+--- !u!114 &2121911839
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 898258561}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfbe5be6da8df2546911aec0939f391b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  logIntervalSeconds: 1
+  logEveryFrameForFirstFrames: 1
+  firstFrameCount: 10
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
