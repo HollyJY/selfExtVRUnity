@@ -7436,7 +7436,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 63fdd3dc0aa4d4dc8adbddf156d05465, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: -0.012
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 63fdd3dc0aa4d4dc8adbddf156d05465, type: 3}
       propertyPath: m_LocalPosition.y
@@ -7444,7 +7444,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 63fdd3dc0aa4d4dc8adbddf156d05465, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: -0.046
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 63fdd3dc0aa4d4dc8adbddf156d05465, type: 3}
       propertyPath: m_LocalRotation.w
@@ -8871,7 +8871,7 @@ MonoBehaviour:
   sampleRate: 16000
   lengthSec: 120
   loop: 1
-  monitorPlayback: 1
+  monitorPlayback: 0
   microphoneReadyTimeout: 5
   maxSpeakSeconds: 120
   OnMicStarted:

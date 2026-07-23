@@ -5774,10 +5774,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9544103afaa4940fda9a105bd205f4ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  participantId: P101
-  participantGender: 1
-  talkerGender: 1
-  debaterGender: 1
+  participantId: P23
+  participantGender: 2
+  talkerGender: 2
+  debaterGender: 2
   lobbySceneName: 0_ExpLobby
   voiceSampleSceneName: 1_VoiceSample
   interactionSceneName: 2_InteractionScene
@@ -5926,7 +5926,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _providedSkeletonType: 1
   _validBodyTrackingDelay: 0.25
-  _debugDrawSkeleton: 1
+  _debugDrawSkeleton: 0
   _debugSkeletonColor: {r: 1, g: 1, b: 1, a: 1}
   _enableAIMotionSynthesizer: 0
   _aiMotionSynthesizerConfig:
