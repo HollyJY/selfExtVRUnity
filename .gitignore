@@ -10,6 +10,14 @@
 !Assets/Scripts/**
 !Assets/Scenes/
 !Assets/Scenes/**
+!Assets/Animates/
+!Assets/Animates/**
+!Assets/Characters/
+!Assets/Characters/**
+!Assets/Cozy Furniture – Chairs & Seats Pack/
+!Assets/Cozy Furniture – Chairs & Seats Pack/**
+!Assets/Ducogen/
+!Assets/Ducogen/**
 
 !Assets/Scripts.meta
 !Assets/Scenes.meta
@@ -33,5 +41,7 @@
 
 !ProjectSettings/
 !ProjectSettings/**
+!Packages/
+!Packages/**
 
 ._*
