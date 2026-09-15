@@ -8871,7 +8871,7 @@ MonoBehaviour:
   sampleRate: 16000
   lengthSec: 120
   loop: 1
-  monitorPlayback: 0
+  monitorPlayback: 1
   microphoneReadyTimeout: 5
   maxSpeakSeconds: 120
   OnMicStarted:
