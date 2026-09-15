@@ -31,5 +31,7 @@
 !Assets/StreamingAssets/ExpMaterial/**.wav
 !Assets/StreamingAssets/ExpMaterial/**.wav.meta
 
+!ProjectSettings/
+!ProjectSettings/**
 
 ._*
